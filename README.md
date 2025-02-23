@@ -8,6 +8,12 @@ Simplified tasks : https://trello.com/b/MsXhz6sK/ir-food-browser
 
 ---
 
+# TO Run app
+
+        uvicorn main:app --reload
+
+---
+
 # Use Cases
 
 ## UC-001: User Authentication
