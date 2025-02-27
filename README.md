@@ -14,6 +14,11 @@ Simplified tasks : https://trello.com/b/MsXhz6sK/ir-food-browser
 
 ---
 
+# To run mongodb (use installed path)
+
+        mongod --dbpath "C:\mongodb\data"
+
+
 # Use Cases
 
 ## UC-001: User Authentication
