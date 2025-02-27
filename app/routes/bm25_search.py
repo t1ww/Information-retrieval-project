@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Query, HTTPException
 from pymongo import MongoClient
 import pickle
-from bm25 import BM25
+from ..indexer.bm25 import BM25
 
 router = APIRouter()
 
 # Load BM25 index (do this once at startup)
 try:
-    with open("bm25_index.pkl", "rb") as f:
+    with open("pickle/bm25_index.pkl", "rb") as f:
         data = pickle.load(f)
     bm25 = data["bm25"]
     recipe_ids = data["recipe_ids"]
