@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from pymongo import MongoClient
 import pickle
-from ..indexer.bm25 import BM25
+from indexer.bm25 import BM25
 
 router = APIRouter()
 
