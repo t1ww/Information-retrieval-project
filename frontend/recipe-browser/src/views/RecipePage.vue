@@ -42,13 +42,13 @@ export default defineComponent({
           {
             method: "GET",
             headers: {
-              "Authorization": "dev", // Send the authorization token
+              "Authorization": "dev",
             },
             credentials: "include",
           }
         );
         if (!response.ok) {
-          throw new Error(`Error fetching image: ${response.status} ${response.statusText}`);
+          throw new Error(`Error fetching fallback image: ${response.status} ${response.statusText}`);
         }
         const imageData = await response.json();
         if (imageData.result && imageData.result.image_urls && imageData.result.image_urls.length > 0) {
@@ -68,7 +68,7 @@ export default defineComponent({
         const response = await fetch(`http://localhost:5000/recipe/${route.params.id}`, {
           method: "GET",
           headers: {
-            "Authorization": "dev", // Send the authorization token
+            "Authorization": "dev",
           },
           credentials: "include",
         });
@@ -121,42 +121,59 @@ export default defineComponent({
 
 <template>
   <div class="recipe-page">
-    <h1>{{ recipe?.name }}</h1>
-
+    <h1 class="recipe-title">{{ recipe?.name }}</h1>
+    
     <div v-if="isLoading" class="loading">Loading...</div>
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
-
+    
     <div v-if="recipe" class="recipe-details">
-      <!-- Carousel -->
+      <!-- Carousel Section -->
       <div class="carousel">
         <button v-if="recipe.image_urls.length > 1" class="prev" @click="prevImage">&#10094;</button>
         <div class="carousel-image-container">
           <transition name="fade" mode="out-in">
-            <!-- Main Image Display -->
-            <img v-if="recipe.image_urls.length > 0" :key="currentImageIndex" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
-              class="carousel-image" />
-            <!-- Fallback Image if no images are available -->
-            <img v-else :src="fallbackImage" alt="Fallback Recipe Image" class="carousel-image" />
+            <img 
+              v-if="recipe.image_urls.length > 0" 
+              :key="currentImageIndex" 
+              :src="recipe.image_urls[currentImageIndex]" 
+              :alt="recipe.name" 
+              class="carousel-image" 
+            />
+            <img 
+              v-else 
+              :src="fallbackImage" 
+              alt="Fallback Recipe Image" 
+              class="carousel-image" 
+            />
           </transition>
+          <div v-if="!recipe.image_urls.length && fallbackImage" class="overlay">
+            <span>*Taken from nearest image</span>
+          </div>
         </div>
         <button v-if="recipe.image_urls.length > 1" class="next" @click="nextImage">&#10095;</button>
-
-        <!-- Indicators -->
-        <div class="indicators">
-          <span v-for="(_url, index) in recipe.image_urls" :key="index" class="dot"
-            :class="{ active: index === currentImageIndex }" @click="setImage(index)"></span>
+        <div v-if="recipe.image_urls.length > 1" class="indicators">
+          <span 
+            v-for="(_url, index) in recipe.image_urls" 
+            :key="index" 
+            class="dot" 
+            :class="{ active: index === currentImageIndex }" 
+            @click="setImage(index)"
+          ></span>
         </div>
       </div>
 
-      <!-- Recipe Details -->
+      <!-- Recipe Information -->
       <div class="recipe-info">
-        <p><strong>Author:</strong> {{ recipe.author_name }}</p>
-        <p><strong>Category:</strong> {{ recipe.recipe_category }}</p>
-        <p><strong>Servings:</strong> {{ recipe.recipe_servings }}</p>
-        <p><strong>Prep Time:</strong> {{ recipe.prep_time }}</p>
-        <p><strong>Cook Time:</strong> {{ recipe.cook_time }}</p>
-        <p><strong>Total Time:</strong> {{ recipe.total_time }}</p>
-
+        <div class="header-info">
+          <p><strong>Author:</strong> {{ recipe.author_name }}</p>
+          <p><strong>Category:</strong> {{ recipe.recipe_category }}</p>
+          <p><strong>Servings:</strong> {{ recipe.recipe_servings }}</p>
+        </div>
+        <div class="time-info">
+          <p><strong>Prep Time:</strong> {{ recipe.prep_time }}</p>
+          <p><strong>Cook Time:</strong> {{ recipe.cook_time }}</p>
+          <p><strong>Total Time:</strong> {{ recipe.total_time }}</p>
+        </div>
         <div class="nutrition">
           <p><strong>Calories:</strong> {{ recipe.calories }} kcal</p>
           <p><strong>Protein:</strong> {{ recipe.protein_content }} g</p>
@@ -168,71 +185,98 @@ export default defineComponent({
         </div>
       </div>
 
-      <h3>Description</h3>
-      <p>{{ recipe.description }}</p>
+      <!-- Description -->
+      <section class="description">
+        <h3>Description</h3>
+        <p>{{ recipe.description }}</p>
+      </section>
 
-      <h3>Ingredients</h3>
-      <ul>
-        <li v-for="(ingredient, index) in recipe.ingredients" :key="index">
-          {{ ingredient[0] }}: {{ ingredient[1] }}
-        </li>
-      </ul>
+      <!-- Ingredients -->
+      <section class="ingredients-section">
+        <h3>Ingredients</h3>
+        <ul class="ingredients">
+          <li v-for="(ingredient, index) in recipe.ingredients" :key="index">
+            <span class="quantity">{{ ingredient[1] }}</span>
+            <span class="item">{{ ingredient[0] }}</span>
+          </li>
+        </ul>
+      </section>
 
-      <h3>Instructions</h3>
-      <ol>
-        <li v-for="(instruction, index) in recipe.instructions" :key="index">{{ instruction }}</li>
-      </ol>
+      <!-- Instructions -->
+      <section class="instructions-section">
+        <h3>Instructions</h3>
+        <ol class="instructions">
+          <li v-for="(instruction, index) in recipe.instructions" :key="index">
+            {{ instruction }}
+          </li>
+        </ol>
+      </section>
 
-      <h3>Keywords</h3>
-      <div class="keywords">
-        <span v-for="(keyword, index) in recipe.keywords" :key="index" class="keyword">{{ keyword }}</span>
-      </div>
+      <!-- Keywords -->
+      <section class="keywords-section">
+        <h3>Keywords</h3>
+        <div class="keywords">
+          <span v-for="(keyword, index) in recipe.keywords" :key="index" class="keyword">
+            {{ keyword }}
+          </span>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
-
 <style scoped>
+/* Container styling */
 .recipe-page {
   max-width: 800px;
   margin: auto;
   padding: 20px;
+  background: var(--app-bg, #ffffff);
+  color: var(--app-text, #242424);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-.loading {
+/* Title */
+.recipe-title {
   text-align: center;
-  font-size: 18px;
-}
-
-.error {
-  color: red;
-  font-weight: bold;
-}
-
-.carousel {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 2.5em;
   margin-bottom: 20px;
 }
 
-.carousel-image-container {
-  position: relative;
-  max-width: 100%;
+/* Loading & error */
+.loading {
+  text-align: center;
+  font-size: 18px;
+  margin: 20px 0;
+}
+.error {
+  color: red;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
+/* Carousel styles */
+.carousel {
+  position: relative;
+  margin-bottom: 20px;
+}
+.carousel-image-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
 .carousel-image {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
   border-radius: 5px;
+  transition: transform 0.3s ease-in-out;
 }
-
 .fallback-container {
   position: relative;
 }
-
 .overlay {
   position: absolute;
   top: 0;
@@ -243,10 +287,12 @@ export default defineComponent({
   display: flex;
   justify-content: center;
   align-items: flex-end;
+  padding-bottom: 10px;
   color: #b4a984;
   font-size: 14px;
 }
 
+/* Carousel navigation */
 .prev,
 .next {
   position: absolute;
@@ -260,62 +306,110 @@ export default defineComponent({
   font-size: 18px;
   border-radius: 50%;
   z-index: 1;
+  transition: background-color 0.3s;
 }
-
+.prev:hover,
+.next:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
 .prev {
   left: 10px;
 }
-
 .next {
   right: 10px;
 }
-
 .indicators {
   position: absolute;
   bottom: 10px;
   width: 100%;
   text-align: center;
 }
-
 .dot {
   height: 10px;
   width: 10px;
   margin: 0 5px;
   background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 25%;
+  border-radius: 50%;
   display: inline-block;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
-
 .dot.active {
   background-color: white;
 }
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
 
-.recipe-info p {
+/* Recipe info */
+.recipe-info {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.header-info,
+.time-info,
+.nutrition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.header-info p,
+.time-info p,
+.nutrition p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Sections */
+.description,
+.ingredients-section,
+.instructions-section,
+.keywords-section {
+  margin-top: 20px;
+  text-align: left;
+}
+h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 5px;
+}
+
+/* Ingredients */
+.ingredients {
+  list-style: none;
+  padding: 0;
+}
+.ingredients li {
+  padding: 5px 0;
+  font-size: 16px;
+}
+.quantity {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+/* Instructions */
+.instructions {
+  padding-left: 20px;
   font-size: 16px;
   line-height: 1.5;
 }
 
-.nutrition p {
-  font-size: 14px;
-}
-
+/* Keywords */
 .keywords {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 10px;
 }
-
 .keyword {
   background-color: #f1f1f1;
   padding: 5px 10px;
