@@ -15,9 +15,9 @@ export default defineComponent({
       type: Object as () => Recipe,
       required: true
     },
-    fallbackImage: {
-      type: String,
-      default: ''
+    fallback: {
+      type: Boolean,
+      default: false
     }
   }
 })
@@ -26,16 +26,19 @@ export default defineComponent({
 <template>
   <div class="recipe-card">
     <div class="recipe-image">
-      <template v-if="recipe.image_urls.length">
-        <img :src="recipe.image_urls[0]" alt="Recipe Image" />
-      </template>
-      <template v-else>
+      <template v-if="fallback && recipe.image_urls.length">
         <div class="fallback-container">
-          <img :src="fallbackImage" alt="Fallback Recipe Image" />
+          <img :src="recipe.image_urls[0]" alt="Fallback Recipe Image" />
           <div class="overlay">
             <span>Taken from nearest image</span>
           </div>
         </div>
+      </template>
+      <template v-else-if="recipe.image_urls.length">
+        <img :src="recipe.image_urls[0]" alt="Recipe Image" />
+      </template>
+      <template v-else>
+        <div class="no-image">No Image</div>
       </template>
     </div>
     <div class="recipe-info">
@@ -81,6 +84,17 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   color: #fff;
+  font-size: 14px;
+}
+
+.no-image {
+  background-color: #f0f0f0;
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
   font-size: 14px;
 }
 

@@ -9,7 +9,7 @@ interface Recipe {
   name: string;
   snippet: string;
   image_urls: string[];
-  fallback_image?: string; // Fallback image URL
+  fallback?: boolean; // use primitive boolean here
 }
 
 export default defineComponent({
@@ -29,18 +29,21 @@ export default defineComponent({
     // Function to fetch the fallback image (only once per query)
     const fetchFallbackImage = async (): Promise<string> => {
       try {
-        const response = await fetch(`http://localhost:5000/search_nearest_image?query=${encodeURIComponent(searchQuery.value)}`, {
-          method: "GET",
-          headers: {
-            "Authorization": "dev", // Send the authorization token
-          },
-          credentials: "include", // If session-based auth is used
-        });
+        const response = await fetch(
+          `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(searchQuery.value)}`,
+          {
+            method: "GET",
+            headers: {
+              "Authorization": "dev", // Send the authorization token
+            },
+            credentials: "include",
+          }
+        );
         if (!response.ok) {
           throw new Error(`Error fetching image: ${response.status} ${response.statusText}`);
         }
         const imageData = await response.json();
-        // Expecting imageData.result.image_urls to be an array
+        // Expect imageData.result.image_urls to be an array
         if (imageData.result && imageData.result.image_urls && imageData.result.image_urls.length > 0) {
           return imageData.result.image_urls[0];
         }
@@ -60,22 +63,26 @@ export default defineComponent({
       isLoading.value = true;
       errorMessage.value = null;
       try {
-        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(searchQuery.value)}`, {
-          method: "GET",
-          headers: {
-            "Authorization": "dev", // Send the authorization token
-          },
-          credentials: "include", // If session-based auth is used
-        });
+        const response = await fetch(
+          `http://localhost:5000/search?query=${encodeURIComponent(searchQuery.value)}`,
+          {
+            method: "GET",
+            headers: {
+              "Authorization": "dev", // Send the authorization token
+            },
+            credentials: "include",
+          }
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
         const fetchedRecipes = data.results || [];
-        // Loop through each fetched recipe; if no image, assign fallback_image
+        // Loop through fetched recipes and assign fallback image if needed
         for (const recipe of fetchedRecipes) {
           if (recipe.image_urls.length === 0) {
-            recipe.fallback_image = fallbackImage.value;
+            recipe.image_urls = [fallbackImage.value];
+            recipe.fallback = true;
           }
         }
         recipes.value = fetchedRecipes;
@@ -119,11 +126,12 @@ export default defineComponent({
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
     <div v-if="recipes.length" class="recipe-list">
-      <RecipeCard 
-        v-for="recipe in recipes" 
-        :key="recipe.recipe_id" 
-        :recipe="recipe" 
-        :fallback-image="recipe.fallback_image" />
+      <RecipeCard
+        v-for="recipe in recipes"
+        :key="recipe.recipe_id"
+        :recipe="recipe"
+        :fallback="recipe.fallback"
+      />
     </div>
     <div v-else-if="!isLoading && !errorMessage">No recipes found.</div>
   </div>
@@ -135,7 +143,6 @@ export default defineComponent({
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
 }
-
 .error {
   color: red;
 }
