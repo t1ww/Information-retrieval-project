@@ -6,9 +6,23 @@ interface RecipeDetail {
   recipe_id: string;
   name: string;
   description: string;
-  ingredients: string;
-  instructions: string;
+  ingredients: [string, string][];
+  instructions: string[];
   image_urls: string[];
+  author_name: string;
+  calories: number;
+  carbohydrate_content: number;
+  cholesterol_content: number;
+  cook_time: string;
+  fat_content: number;
+  fiber_content: number;
+  protein_content: number;
+  recipe_category: string;
+  recipe_servings: number;
+  sugar_content: number;
+  prep_time: string;
+  total_time: string;
+  keywords: string[];
 }
 
 export default defineComponent({
@@ -107,31 +121,24 @@ export default defineComponent({
 
 <template>
   <div class="recipe-page">
-    <h1>Recipe Details</h1>
+    <h1>{{ recipe?.name }}</h1>
 
-    <div v-if="isLoading">Loading...</div>
+    <div v-if="isLoading" class="loading">Loading...</div>
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
     <div v-if="recipe" class="recipe-details">
-      <h2>{{ recipe.name }}</h2>
-
+      <!-- Carousel -->
       <div class="carousel">
         <button v-if="recipe.image_urls.length > 1" class="prev" @click="prevImage">&#10094;</button>
-        <div v-if="recipe.image_urls.length" class="carousel-image-container">
+        <div class="carousel-image-container">
           <transition name="fade" mode="out-in">
-            <img :key="currentImageIndex" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
+            <!-- Main Image Display -->
+            <img v-if="recipe.image_urls.length > 0" :key="currentImageIndex" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
               class="carousel-image" />
+            <!-- Fallback Image if no images are available -->
+            <img v-else :src="fallbackImage" alt="Fallback Recipe Image" class="carousel-image" />
           </transition>
         </div>
-
-        <!-- Fallback Image Section with Overlay -->
-        <div v-else class="fallback-container">
-          <img :src="fallbackImage" alt="Fallback Recipe Image" class="carousel-image" />
-          <div class="overlay">
-            <span>*Taken from nearest image</span>
-          </div>
-        </div>
-
         <button v-if="recipe.image_urls.length > 1" class="next" @click="nextImage">&#10095;</button>
 
         <!-- Indicators -->
@@ -141,23 +148,65 @@ export default defineComponent({
         </div>
       </div>
 
+      <!-- Recipe Details -->
+      <div class="recipe-info">
+        <p><strong>Author:</strong> {{ recipe.author_name }}</p>
+        <p><strong>Category:</strong> {{ recipe.recipe_category }}</p>
+        <p><strong>Servings:</strong> {{ recipe.recipe_servings }}</p>
+        <p><strong>Prep Time:</strong> {{ recipe.prep_time }}</p>
+        <p><strong>Cook Time:</strong> {{ recipe.cook_time }}</p>
+        <p><strong>Total Time:</strong> {{ recipe.total_time }}</p>
+
+        <div class="nutrition">
+          <p><strong>Calories:</strong> {{ recipe.calories }} kcal</p>
+          <p><strong>Protein:</strong> {{ recipe.protein_content }} g</p>
+          <p><strong>Carbohydrates:</strong> {{ recipe.carbohydrate_content }} g</p>
+          <p><strong>Fat:</strong> {{ recipe.fat_content }} g</p>
+          <p><strong>Fiber:</strong> {{ recipe.fiber_content }} g</p>
+          <p><strong>Sugar:</strong> {{ recipe.sugar_content }} g</p>
+          <p><strong>Cholesterol:</strong> {{ recipe.cholesterol_content }} mg</p>
+        </div>
+      </div>
+
       <h3>Description</h3>
       <p>{{ recipe.description }}</p>
 
       <h3>Ingredients</h3>
-      <p>{{ recipe.ingredients }}</p>
+      <ul>
+        <li v-for="(ingredient, index) in recipe.ingredients" :key="index">
+          {{ ingredient[0] }}: {{ ingredient[1] }}
+        </li>
+      </ul>
 
       <h3>Instructions</h3>
-      <p>{{ recipe.instructions }}</p>
+      <ol>
+        <li v-for="(instruction, index) in recipe.instructions" :key="index">{{ instruction }}</li>
+      </ol>
+
+      <h3>Keywords</h3>
+      <div class="keywords">
+        <span v-for="(keyword, index) in recipe.keywords" :key="index" class="keyword">{{ keyword }}</span>
+      </div>
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .recipe-page {
   max-width: 800px;
   margin: auto;
   padding: 20px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 18px;
+}
+
+.error {
+  color: red;
+  font-weight: bold;
 }
 
 .carousel {
@@ -193,7 +242,7 @@ export default defineComponent({
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
-  align-items: flex-end; /* Align items at the bottom */
+  align-items: flex-end;
   color: #b4a984;
   font-size: 14px;
 }
@@ -252,7 +301,26 @@ export default defineComponent({
   opacity: 0;
 }
 
-.error {
-  color: red;
+.recipe-info p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.nutrition p {
+  font-size: 14px;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.keyword {
+  background-color: #f1f1f1;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 14px;
+  color: #555;
 }
 </style>
