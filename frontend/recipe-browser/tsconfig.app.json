@@ -2,7 +2,10 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
+    "baseUrl": ".",  // This is crucial for path aliasing to work
+    "paths": {
+      "@/*": ["src/*"]  // This resolves `@` to `src`
+    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
