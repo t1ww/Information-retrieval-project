@@ -14,6 +14,10 @@ export default defineComponent({
     recipe: {
       type: Object as () => Recipe,
       required: true
+    },
+    fallbackImage: {
+      type: String,
+      default: ''
     }
   }
 })
@@ -22,12 +26,17 @@ export default defineComponent({
 <template>
   <div class="recipe-card">
     <div class="recipe-image">
-      <img
-        v-if="recipe.image_urls.length"
-        :src="recipe.image_urls[0]"
-        alt="Recipe Image"
-      />
-      <div v-else class="no-image">No Image</div>
+      <template v-if="recipe.image_urls.length">
+        <img :src="recipe.image_urls[0]" alt="Recipe Image" />
+      </template>
+      <template v-else>
+        <div class="fallback-container">
+          <img :src="fallbackImage" alt="Fallback Recipe Image" />
+          <div class="overlay">
+            <span>Taken from nearest image</span>
+          </div>
+        </div>
+      </template>
     </div>
     <div class="recipe-info">
       <h3>{{ recipe.name }}</h3>
@@ -46,35 +55,52 @@ export default defineComponent({
   padding: 16px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+
+.recipe-image {
+  position: relative;
+}
+
 .recipe-image img {
   width: 100%;
   height: 180px;
   object-fit: cover;
 }
-.no-image {
-  background-color: #f0f0f0;
+
+.fallback-container {
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 180px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #888;
+  align-items: center;
+  color: #fff;
   font-size: 14px;
 }
+
 .recipe-info h3 {
   margin: 10px 0;
   font-size: 18px;
 }
+
 .recipe-info p {
   font-size: 14px;
   color: #555;
 }
+
 .recipe-actions a {
   margin-top: 10px;
   text-decoration: none;
   color: #007BFF;
   font-weight: bold;
 }
+
 .recipe-actions a:hover {
   text-decoration: underline;
 }

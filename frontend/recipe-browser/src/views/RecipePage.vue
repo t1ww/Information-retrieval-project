@@ -18,13 +18,13 @@ export default defineComponent({
     const recipe = ref<RecipeDetail | null>(null);
     const isLoading = ref<boolean>(true);
     const errorMessage = ref<string | null>(null);
-
+    
     const fetchRecipe = async () => {
       isLoading.value = true;
       errorMessage.value = null;
 
       try {
-        const response = await fetch(`http://127.0.0.1:5000/recipe/${route.params.recipe_id}`, {
+        const response = await fetch(`http://localhost:5000/recipe/${route.params.id}`, {
           method: "GET",
           headers: {
             "Authorization": "dev", // Send the authorization token
@@ -75,12 +75,12 @@ export default defineComponent({
 
       <h3>Ingredients</h3>
       <ul>
-        <li v-for="ingredient in recipe.ingredients" :key="ingredient">{{ ingredient }}</li>
+        <p>{{ recipe.ingredients }}</p>
       </ul>
 
       <h3>Instructions</h3>
       <ol>
-        <li v-for="step in recipe.instructions" :key="step">{{ step }}</li>
+        {{ recipe.instructions }}
       </ol>
     </div>
   </div>
