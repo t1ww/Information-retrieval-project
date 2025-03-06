@@ -30,7 +30,7 @@ export default defineComponent({
         <div class="fallback-container">
           <img :src="recipe.image_urls[0]" alt="Fallback Recipe Image" />
           <div class="overlay">
-            <span>Taken from nearest image</span>
+            <span>*Taken from nearest image</span>
           </div>
         </div>
       </template>
@@ -78,12 +78,12 @@ export default defineComponent({
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  height: 97%;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
-  align-items: center;
-  color: #fff;
+  align-items: flex-end; /* Align items at the bottom */
+  color: #b4a984;
   font-size: 14px;
 }
 
