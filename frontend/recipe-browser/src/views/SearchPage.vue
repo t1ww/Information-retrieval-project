@@ -1,8 +1,8 @@
 <script lang="ts">
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, ref, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import RecipeCard from "@/components/RecipeCard.vue";
-import SearchBar from "@/components/SearchBar.vue"; // Import the SearchBar component
+import SearchBar from "@/components/SearchBar.vue";
 
 interface Recipe {
   recipe_id: string;
@@ -15,46 +15,59 @@ export default defineComponent({
   name: "SearchPage",
   components: {
     RecipeCard,
-    SearchBar, // Register the SearchBar component
+    SearchBar,
   },
   setup() {
     const route = useRoute();
     const searchQuery = ref<string>(String(route.query.query || route.query.q || ""));
+    const recipes = ref<Recipe[]>([]);
+    const isLoading = ref<boolean>(false);
+    const errorMessage = ref<string | null>(null);
 
-    // Watch for changes in the query params (for when the URL changes)
+    // Function to fetch recipes from the API
+    const fetchRecipes = async () => {
+      if (!searchQuery.value.trim()) {
+        recipes.value = [];
+        return;
+      }
+
+      isLoading.value = true;
+      errorMessage.value = null;
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/search?query=${encodeURIComponent(searchQuery.value)}`, {
+          method: "GET",
+          headers: {
+            "Authorization": "dev", // Send the authorization token
+          },
+          credentials: "include", // If session-based auth is used
+        });
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        recipes.value = data.results || []; // Fix here
+      } catch (error) {
+        errorMessage.value = (error as Error).message;
+        recipes.value = [];
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    // Fetch recipes when query changes
     watch(() => route.query.query || route.query.q, (newQuery) => {
       searchQuery.value = String(newQuery || "");
+      fetchRecipes();
     });
 
-    // Sample recipes data; replace with your API call as needed
-    const recipes: Recipe[] = [
-      {
-        recipe_id: "88",
-        name: "Breakfast Burritos",
-        snippet: "Scramble eggs with a small amount of milk...",
-        image_urls: [],
-      },
-      {
-        recipe_id: "143",
-        name: "Cherry Tomatoes on Provolone Garlic Bread",
-        snippet: "For the tomatoes, mix tomatoes, scallions...",
-        image_urls: [
-          "https://img.sndimg.com/food/image/upload/w_555,h_416,c_fit,fl_progressive,q_95/v1/img/recipes/14/3/picBwpb8U.jpg",
-        ],
-      },
-      {
-        recipe_id: "54",
-        name: "Carrot Cake",
-        snippet: "Beat together the eggs, oil, and white sugar...",
-        image_urls: [
-          "https://img.sndimg.com/food/image/upload/w_555,h_416,c_fit,fl_progressive,q_95/v1/img/recipes/54/picQ2X4D8.jpg",
-        ],
-      },
-    ];
+    // Fetch recipes when the page loads
+    onMounted(fetchRecipes);
 
     return {
       searchQuery,
       recipes,
+      isLoading,
+      errorMessage,
     };
   },
 });
@@ -63,16 +76,15 @@ export default defineComponent({
 <template>
   <div>
     <h1>Search Recipes</h1>
-    <!-- Use the SearchBar component, passing the searchQuery prop -->
-    <SearchBar :query="searchQuery"/>
-    <!-- Recipes List -->
-    <div class="recipe-list">
-      <RecipeCard
-        v-for="recipe in recipes"
-        :key="recipe.recipe_id"
-        :recipe="recipe"
-      />
+    <SearchBar :query="searchQuery" />
+
+    <div v-if="isLoading">Loading...</div>
+    <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
+
+    <div v-if="recipes.length" class="recipe-list">
+      <RecipeCard v-for="recipe in recipes" :key="recipe.recipe_id" :recipe="recipe" />
     </div>
+    <div v-else-if="!isLoading && !errorMessage">No recipes found.</div>
   </div>
 </template>
 
@@ -81,5 +93,9 @@ export default defineComponent({
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
+}
+
+.error {
+  color: red;
 }
 </style>
