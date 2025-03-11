@@ -5,6 +5,7 @@ import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import HomePage from '@/views/HomePage.vue';
 import SearchPage from '@/views/SearchPage.vue';
 import RecipePage from '@/views/RecipePage.vue';
+import RegisterPage from '@/views/RegisterPage.vue';
 
 
 // Define routes
@@ -13,6 +14,11 @@ const routes = [
     path: '/',
     name: 'Home',
     component: HomePage,
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: RegisterPage,
   },
   {
     path: '/recipe/:id',
