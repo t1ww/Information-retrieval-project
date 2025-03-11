@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mysql:
     image: mysql:latest
-    container_name: mysql_container
+    container_name: IR_mysql_container
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_password
@@ -11,13 +11,13 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: user_password
     ports:
-      - "3306:3306"
+      - "3309:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: phpmyadmin_container
+    container_name: IR_phpmyadmin_container
     restart: always
     environment:
       PMA_HOST: mysql
