@@ -25,6 +25,7 @@ export default defineComponent({
 
     const handleLogin = async () => {
       try {
+        // Send login request to the Flask backend
         const response = await axios.post('http://localhost:5000/login', {
           username: username.value,
           password: password.value
@@ -59,10 +60,10 @@ export default defineComponent({
       localStorage.removeItem('authToken')
       router.push('/') // Redirect to homepage after logout
     }
+
     const userDisplayName = computed(() => {
       return localStorage.getItem('authUsername') || ''
     })
-
 
     return {
       isLoginPopupVisible,
@@ -93,7 +94,9 @@ export default defineComponent({
 
       <!-- Show username and 'Logout' if the user is logged in -->
       <li v-if="isLoggedIn">
-        <span class="nav-link">Welcome, {{ userDisplayName }}</span>
+        <span class="nav-link">Welcome, {{ userDisplayName }} </span>
+      </li>
+      <li v-if="isLoggedIn">
         <a href="javascript:void(0);" class="nav-link" @click="handleLogout">Logout</a>
       </li>
     </ul>
