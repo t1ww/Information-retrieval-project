@@ -21,9 +21,7 @@ export default defineComponent({
         const newFolderName = ref<string>("");
         const fallbackImageCache = new Map<string, string>(); // Cache fallback images
 
-        /**
-         * Fetch a fallback image for recipes without images
-         */
+        // Fetch fallback image logic
         const fetchFallbackImage = async (query: string): Promise<string> => {
             if (fallbackImageCache.has(query)) {
                 return fallbackImageCache.get(query) || "";
@@ -39,7 +37,7 @@ export default defineComponent({
 
                 const imageData = await response.json();
                 const imageUrl = imageData.result?.image_urls?.[0] || "";
-                fallbackImageCache.set(query, imageUrl); // Store in cache
+                fallbackImageCache.set(query, imageUrl);
                 return imageUrl;
             } catch (error) {
                 console.error("Error fetching fallback image:", error);
@@ -47,9 +45,7 @@ export default defineComponent({
             }
         };
 
-        /**
-         * Fetch bookmarked recipes and apply fallback images if needed
-         */
+        // Fetch bookmarks
         const fetchBookmarks = async () => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -65,7 +61,6 @@ export default defineComponent({
 
                 const data = await response.json();
 
-                // Fetch full recipe details and assign fallback images
                 const recipeDetails = await Promise.all(
                     data.bookmarks.map(async (bookmark: any) => {
                         const recipeResponse = await fetch(`http://localhost:5000/recipe/${bookmark.recipe_id}`, {
@@ -82,12 +77,12 @@ export default defineComponent({
                             ...recipeData,
                             image_urls: recipeData.image_urls.length ? recipeData.image_urls : [fallbackImage],
                             fallback: recipeData.image_urls.length === 0,
-                            rating: bookmark.rating, // Attach user rating
+                            rating: bookmark.rating,
                         };
                     })
                 );
 
-                bookmarks.value = recipeDetails.filter(Boolean); // Remove failed fetches
+                bookmarks.value = recipeDetails.filter(Boolean);
             } catch (error) {
                 errorMessage.value = (error as Error).message;
             } finally {
@@ -95,9 +90,7 @@ export default defineComponent({
             }
         };
 
-        /**
-         * Fetch folders and their recipes, ensuring fallback images are applied
-         */
+        // Fetch folders
         const fetchFolders = async () => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -144,10 +137,8 @@ export default defineComponent({
             }
         };
 
-        /**
-         * Remove a bookmark
-         */
-        const removeBookmark = async (recipeId: number) => {
+        // Remove a bookmark
+        const removeBookmark = async (recipeId: string) => {
             try {
                 const token = localStorage.getItem("authToken");
                 if (!token) return;
@@ -170,10 +161,10 @@ export default defineComponent({
             }
         };
 
-        /**
-         * Create a new folder
-         */
+        // Create a new folder
         const createFolder = async () => {
+            if (!newFolderName.value.trim()) return;  // Prevent creating an empty folder
+
             const token = localStorage.getItem("authToken");
             if (!token) return;
 
@@ -184,11 +175,15 @@ export default defineComponent({
                 body: JSON.stringify({ folder_name: newFolderName.value }),
             });
 
-            fetchFolders();
+            newFolderName.value = "";  // Clear the input field after creation
+            fetchFolders();  // Refresh the folder list
         };
 
-        onMounted(fetchBookmarks);
-        onMounted(fetchFolders);
+        // Initialize data
+        onMounted(async () => {
+            await fetchBookmarks();
+            await fetchFolders();
+        });
 
         return { bookmarks, folders, isLoading, errorMessage, removeBookmark, newFolderName, createFolder };
     },
