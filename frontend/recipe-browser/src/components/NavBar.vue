@@ -1,51 +1,57 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
-import axios, { AxiosError } from 'axios' // Import axios for HTTP requests
-import { useRouter } from 'vue-router' // Import Vue Router for navigation
+import axios, { AxiosError } from 'axios'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'NavBar',
   setup() {
-    const isLoginPopupVisible = ref(false)  // To control visibility of the login popup
-    const username = ref('') // Binding for username input
-    const password = ref('') // Binding for password input
-    const errorMessage = ref('') // To hold any error messages
+    const isLoginPopupVisible = ref(false)
+    const username = ref('')
+    const password = ref('')
+    const errorMessage = ref('')
+    const successMessage = ref('') // Message for login/logout success
+    const showSuccessPopup = ref(false) // Controls visibility of success messages
 
     const router = useRouter()
 
-    // Check if user is logged in by checking if the token exists
     const isLoggedIn = computed(() => {
       return localStorage.getItem('authToken') !== null
     })
 
-    // Get the username from localStorage if logged in
     const toggleLoginPopup = () => {
       isLoginPopupVisible.value = !isLoginPopupVisible.value
     }
 
+    const showMessage = (message: string) => {
+      successMessage.value = message
+      showSuccessPopup.value = true
+      setTimeout(() => {
+        showSuccessPopup.value = false
+      }, 2000) // Hide after 2 seconds
+    }
+
     const handleLogin = async () => {
       try {
-        // Send login request to the Flask backend
         const response = await axios.post('http://localhost:5000/login', {
           username: username.value,
           password: password.value
         })
 
         if (response.data.token) {
-          // Set the values to localStorage
           localStorage.setItem('authUsername', response.data.username)
           localStorage.setItem('authToken', response.data.token)
-
-          // Update the `username` ref to reflect the new logged-in username
           username.value = response.data.username
 
-          // Redirect to the homepage
-          router.push('/')
+          showMessage('Login successful!')
+          toggleLoginPopup()
+
+          setTimeout(() => {
+          router.go(0)
+          }, 1500) // Redirect after 1.5s
         } else {
           errorMessage.value = 'Login failed. Please try again.'
         }
-
-        toggleLoginPopup() // Close the login popup
       } catch (error: unknown) {
         if (error instanceof AxiosError && error.response?.data?.message) {
           errorMessage.value = error.response.data.message
@@ -56,9 +62,15 @@ export default defineComponent({
     }
 
     const handleLogout = () => {
-      localStorage.removeItem('authUsername')
-      localStorage.removeItem('authToken')
-      router.push('/') // Redirect to homepage after logout
+      if (confirm('Are you sure you want to log out?')) {
+        showMessage('Logging out...')
+
+        setTimeout(() => {
+          localStorage.removeItem('authUsername')
+          localStorage.removeItem('authToken')
+          router.go(0)
+        }, 1500) // Delay logout
+      }
     }
 
     const userDisplayName = computed(() => {
@@ -70,6 +82,8 @@ export default defineComponent({
       username,
       password,
       errorMessage,
+      successMessage,
+      showSuccessPopup,
       toggleLoginPopup,
       handleLogin,
       handleLogout,
@@ -86,13 +100,9 @@ export default defineComponent({
       <li>
         <router-link to="/" class="nav-link" exact>Home</router-link>
       </li>
-
-      <!-- Show 'Login' link if the user is not logged in -->
       <li v-if="!isLoggedIn">
         <a href="javascript:void(0);" class="nav-link" @click="toggleLoginPopup">Login</a>
       </li>
-
-      <!-- Show username and 'Logout' if the user is logged in -->
       <li v-if="isLoggedIn">
         <span class="nav-link">Welcome, {{ userDisplayName }} </span>
       </li>
@@ -118,6 +128,11 @@ export default defineComponent({
         <p>Don't have an account? <router-link to="/register">Register here</router-link></p>
         <button @click="toggleLoginPopup" class="close-btn">Close</button>
       </div>
+    </div>
+
+    <!-- Success Popup -->
+    <div v-if="showSuccessPopup" class="success-popup">
+      <p>{{ successMessage }}</p>
     </div>
   </nav>
 </template>
@@ -164,7 +179,6 @@ li {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  /* Overlay */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -227,5 +241,19 @@ li {
   font-size: 14px;
   margin-top: 10px;
   text-align: center;
+}
+
+/* Success Popup */
+.success-popup {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  font-size: 16px;
 }
 </style>
