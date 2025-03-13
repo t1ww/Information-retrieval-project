@@ -9,7 +9,7 @@ interface Recipe {
   name: string;
   snippet: string;
   image_urls: string[];
-  fallback?: boolean; // use primitive boolean here
+  fallback?: boolean;
 }
 
 export default defineComponent({
@@ -20,72 +20,72 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
-    const searchQuery = ref<string>(String(route.query.query || route.query.q || ""));
+    const searchQuery = ref<string>(String(route.query.query || route.query.q || "").trim());
     const recipes = ref<Recipe[]>([]);
     const isLoading = ref<boolean>(false);
     const errorMessage = ref<string | null>(null);
-    const fallbackImage = ref<string>("");
+    const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
 
-    // Function to fetch the fallback image (only once per query)
-    const fetchFallbackImage = async (): Promise<string> => {
+    /**
+     * Fetch the fallback image for a query (uses caching)
+     */
+    const fetchFallbackImage = async (query: string): Promise<string> => {
+      if (fallbackImageCache.has(query)) {
+        return fallbackImageCache.get(query) || "";
+      }
       try {
-        const response = await fetch(
-          `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(searchQuery.value)}`,
-          {
-            method: "GET",
-            headers: {
-              "Authorization": "dev", // Send the authorization token
-            },
-            credentials: "include",
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Error fetching image: ${response.status} ${response.statusText}`);
-        }
+        const response = await fetch(`http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`, {
+          method: "GET",
+          headers: { "Authorization": "dev" },
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error(`Error fetching image: ${response.statusText}`);
+
         const imageData = await response.json();
-        // Expect imageData.result.image_urls to be an array
-        if (imageData.result && imageData.result.image_urls && imageData.result.image_urls.length > 0) {
-          return imageData.result.image_urls[0];
-        }
-        return "";
+        const imageUrl = imageData.result?.image_urls?.[0] || "";
+        fallbackImageCache.set(query, imageUrl); // Store in cache
+        return imageUrl;
       } catch (error) {
         console.error("Error fetching fallback image:", error);
         return "";
       }
     };
 
-    // Function to fetch recipes from the API
+    /**
+     * Fetch recipes, ensuring fallback images are assigned when necessary
+     */
     const fetchRecipes = async () => {
-      if (!searchQuery.value.trim()) {
+      const query = searchQuery.value.trim();
+      if (!query) {
         recipes.value = [];
         return;
       }
+
       isLoading.value = true;
       errorMessage.value = null;
+
       try {
-        const response = await fetch(
-          `http://localhost:5000/search?query=${encodeURIComponent(searchQuery.value)}`,
-          {
-            method: "GET",
-            headers: {
-              "Authorization": "dev", // Send the authorization token
-            },
-            credentials: "include",
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
+        // Get fallback image (cached if available)
+        const fallbackImage = await fetchFallbackImage(query);
+
+        // Fetch recipes
+        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}`, {
+          method: "GET",
+          headers: { "Authorization": "dev" },
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+
         const data = await response.json();
         const fetchedRecipes = data.results || [];
-        // Loop through fetched recipes and assign fallback image if needed
-        for (const recipe of fetchedRecipes) {
-          if (recipe.image_urls.length === 0) {
-            recipe.image_urls = [fallbackImage.value];
-            recipe.fallback = true;
-          }
-        }
-        recipes.value = fetchedRecipes;
+
+        // Assign fallback image where needed
+        recipes.value = fetchedRecipes.map((recipe: Recipe) => ({
+          ...recipe,
+          image_urls: recipe.image_urls.length ? recipe.image_urls : [fallbackImage],
+          fallback: recipe.image_urls.length === 0,
+        }));
       } catch (error) {
         errorMessage.value = (error as Error).message;
         recipes.value = [];
@@ -94,18 +94,21 @@ export default defineComponent({
       }
     };
 
-    // When the search query changes, first fetch the fallback image then fetch recipes
-    watch(() => route.query.query || route.query.q, async (newQuery) => {
-      searchQuery.value = String(newQuery || "");
-      fallbackImage.value = await fetchFallbackImage();
-      fetchRecipes();
-    });
+    /**
+     * Watch for changes in the query and update recipes accordingly
+     */
+    watch(
+      () => route.query.query || route.query.q,
+      async (newQuery) => {
+        if (newQuery && String(newQuery).trim() !== searchQuery.value) {
+          searchQuery.value = String(newQuery).trim();
+          fetchRecipes();
+        }
+      },
+      { immediate: true } // Runs on initial mount
+    );
 
-    // On page load, fetch the fallback image then the recipes
-    onMounted(async () => {
-      fallbackImage.value = await fetchFallbackImage();
-      fetchRecipes();
-    });
+    onMounted(fetchRecipes);
 
     return {
       searchQuery,

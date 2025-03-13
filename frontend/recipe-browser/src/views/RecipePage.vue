@@ -1,11 +1,13 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import RecipeCard from "@/components/RecipeCard.vue";
 
-interface RecipeDetail {
+interface Recipe {
   recipe_id: string;
   name: string;
   description: string;
+  snippet: string;
   ingredients: [string, string][];
   instructions: string[];
   image_urls: string[];
@@ -23,44 +25,88 @@ interface RecipeDetail {
   prep_time: string;
   total_time: string;
   keywords: string[];
+  fallback?: boolean;
 }
 
 export default defineComponent({
   name: "RecipePage",
   setup() {
     const route = useRoute();
-    const recipe = ref<RecipeDetail | null>(null);
+    const recipe = ref<Recipe | null>(null);
     const isLoading = ref<boolean>(true);
     const errorMessage = ref<string | null>(null);
     const currentImageIndex = ref<number>(0);
     const fallbackImage = ref<string>("");
+    const userRating = ref<number | null>(null); // Stores the user’s rating
+    const isBookmarked = ref<boolean>(false);
+    const recommendedRecipes = ref<Recipe[]>([]);
+    const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
 
-    const fetchFallbackImage = async (): Promise<string> => {
+    /**
+     * Fetch recommended recipes for the user
+     */
+    const fetchRecommendations = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(recipe.value?.name || "")}`,
-          {
-            method: "GET",
-            headers: {
-              "Authorization": "dev",
-            },
-            credentials: "include",
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Error fetching fallback image: ${response.status} ${response.statusText}`);
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          console.error("No auth token found in localStorage");
+          return;
         }
+
+        const response = await fetch("http://localhost:5000/recommendations", {
+          method: "GET",
+          headers: {
+            Authorization: token,
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch recommendations");
+
+        const data = await response.json();
+        recommendedRecipes.value = data.recommended_recipes;
+
+        // Assign fallback image where needed
+        const fallbackImage = await fetchFallbackImage(recipe.value?.name ?? "food");
+        recommendedRecipes.value = recommendedRecipes.value.map((recipe: Recipe) => ({
+          ...recipe,
+          image_urls: recipe.image_urls.length ? recipe.image_urls : [fallbackImage],
+          fallback: recipe.image_urls.length === 0,
+        }));
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
+      }
+    };
+
+
+    /**
+    * Fetch fallback image for recipes without images
+    */
+    const fetchFallbackImage = async (query: string): Promise<string> => {
+      if (fallbackImageCache.has(query)) {
+        return fallbackImageCache.get(query) || "";
+      }
+      try {
+        const response = await fetch(`http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`, {
+          method: "GET",
+          headers: { "Authorization": "dev" },
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error(`Error fetching image: ${response.statusText}`);
+
         const imageData = await response.json();
-        if (imageData.result && imageData.result.image_urls && imageData.result.image_urls.length > 0) {
-          return imageData.result.image_urls[0];
-        }
-        return "";
+        const imageUrl = imageData.result?.image_urls?.[0] || "";
+        fallbackImageCache.set(query, imageUrl); // Store in cache
+        return imageUrl;
       } catch (error) {
         console.error("Error fetching fallback image:", error);
         return "";
       }
     };
 
+    /**
+     * Fetch recipe details from the backend
+     */
     const fetchRecipe = async () => {
       isLoading.value = true;
       errorMessage.value = null;
@@ -68,17 +114,21 @@ export default defineComponent({
         const response = await fetch(`http://localhost:5000/recipe/${route.params.id}`, {
           method: "GET",
           headers: {
-            "Authorization": "dev",
+            Authorization: "dev",
           },
           credentials: "include",
         });
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Error: ${response.status} ${response.statusText}`);
+
         const data = await response.json();
         recipe.value = data;
+
+        // Fetch bookmark status
+        checkBookmarkStatus();
+
+        // If no image is available, fetch the fallback image
         if (!data.image_urls || data.image_urls.length === 0) {
-          fallbackImage.value = await fetchFallbackImage();
+          fallbackImage.value = await fetchFallbackImage(data.name);
         }
       } catch (error) {
         errorMessage.value = (error as Error).message;
@@ -87,101 +137,125 @@ export default defineComponent({
       }
     };
 
-    const nextImage = () => {
-      if (recipe.value && recipe.value.image_urls.length > 0) {
-        currentImageIndex.value = (currentImageIndex.value + 1) % recipe.value.image_urls.length;
+    /**
+     * Check if the recipe is already bookmarked
+     */
+    const checkBookmarkStatus = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          console.error("No auth token found in localStorage");
+          return;
+        }
+
+        const response = await fetch(`http://localhost:5000/bookmark_status?recipe_id=${route.params.id}`, {
+          method: "GET",
+          headers: {
+            Authorization: token, // Make sure this is correct
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error(`Failed to check bookmark status: ${response.statusText}`);
+
+        const data = await response.json();
+        isBookmarked.value = data.isBookmarked;
+        userRating.value = data.rating || null;
+      } catch (error) {
+        console.error("Error checking bookmark status:", error);
       }
     };
 
-    const prevImage = () => {
-      if (recipe.value && recipe.value.image_urls.length > 0) {
-        currentImageIndex.value = (currentImageIndex.value - 1 + recipe.value.image_urls.length) % recipe.value.image_urls.length;
+
+    /**
+     * Bookmark the recipe with a rating
+     */
+    const bookmarkRecipe = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          console.error("No auth token found in localStorage");
+          return;
+        }
+
+        const response = await fetch("http://localhost:5000/bookmark", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token, // Make sure this is correct
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            recipe_id: recipe.value?.recipe_id,
+            rating: userRating.value,
+          }),
+        });
+
+        if (!response.ok) throw new Error("Failed to bookmark recipe");
+
+        isBookmarked.value = true;
+      } catch (error) {
+        console.error("Error bookmarking recipe:", error);
       }
     };
 
-    const setImage = (index: number) => {
-      currentImageIndex.value = index;
-    };
-
-    onMounted(fetchRecipe);
+    onMounted(() => {
+      fetchRecipe();
+      fetchRecommendations(); // Fetch recommendations on page load
+    });
 
     return {
       recipe,
       isLoading,
       errorMessage,
       currentImageIndex,
-      nextImage,
-      prevImage,
-      setImage,
       fallbackImage,
+      userRating,
+      isBookmarked,
+      bookmarkRecipe,
+      recommendedRecipes
     };
   },
+  components: {
+    RecipeCard
+  },
 });
+
+
 </script>
 
 <template>
   <div class="recipe-page">
     <h1 class="recipe-title">{{ recipe?.name }}</h1>
-    
+
     <div v-if="isLoading" class="loading">Loading...</div>
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
-    
+
     <div v-if="recipe" class="recipe-details">
-      <!-- Carousel Section -->
+      <!-- Image Section -->
       <div class="carousel">
-        <button v-if="recipe.image_urls.length > 1" class="prev" @click="prevImage">&#10094;</button>
-        <div class="carousel-image-container">
-          <transition name="fade" mode="out-in">
-            <img 
-              v-if="recipe.image_urls.length > 0" 
-              :key="currentImageIndex" 
-              :src="recipe.image_urls[currentImageIndex]" 
-              :alt="recipe.name" 
-              class="carousel-image" 
-            />
-            <img 
-              v-else 
-              :src="fallbackImage" 
-              alt="Fallback Recipe Image" 
-              class="carousel-image" 
-            />
-          </transition>
-          <div v-if="!recipe.image_urls.length && fallbackImage" class="overlay">
-            <span>*Taken from nearest image</span>
-          </div>
-        </div>
-        <button v-if="recipe.image_urls.length > 1" class="next" @click="nextImage">&#10095;</button>
-        <div v-if="recipe.image_urls.length > 1" class="indicators">
-          <span 
-            v-for="(_url, index) in recipe.image_urls" 
-            :key="index" 
-            class="dot" 
-            :class="{ active: index === currentImageIndex }" 
-            @click="setImage(index)"
-          ></span>
-        </div>
+        <img v-if="recipe.image_urls.length > 0" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
+          class="carousel-image" />
+        <img v-else :src="fallbackImage" alt="Fallback Recipe Image" class="carousel-image" />
       </div>
 
       <!-- Recipe Information -->
       <div class="recipe-info">
-        <div class="header-info">
-          <p><strong>Author:</strong> {{ recipe.author_name }}</p>
-          <p><strong>Category:</strong> {{ recipe.recipe_category }}</p>
-          <p><strong>Servings:</strong> {{ recipe.recipe_servings }}</p>
-        </div>
-        <div class="time-info">
-          <p><strong>Prep Time:</strong> {{ recipe.prep_time }}</p>
-          <p><strong>Cook Time:</strong> {{ recipe.cook_time }}</p>
-          <p><strong>Total Time:</strong> {{ recipe.total_time }}</p>
-        </div>
-        <div class="nutrition">
-          <p><strong>Calories:</strong> {{ recipe.calories }} kcal</p>
-          <p><strong>Protein:</strong> {{ recipe.protein_content }} g</p>
-          <p><strong>Carbohydrates:</strong> {{ recipe.carbohydrate_content }} g</p>
-          <p><strong>Fat:</strong> {{ recipe.fat_content }} g</p>
-          <p><strong>Fiber:</strong> {{ recipe.fiber_content }} g</p>
-          <p><strong>Sugar:</strong> {{ recipe.sugar_content }} g</p>
-          <p><strong>Cholesterol:</strong> {{ recipe.cholesterol_content }} mg</p>
+        <p><strong>Author:</strong> {{ recipe.author_name }}</p>
+        <p><strong>Category:</strong> {{ recipe.recipe_category }}</p>
+        <p><strong>Servings:</strong> {{ recipe.recipe_servings }}</p>
+      </div>
+
+      <!-- Bookmark Section -->
+      <div class="bookmark-section">
+        <button v-if="isBookmarked" disabled class="bookmarked-btn">✅ Bookmarked : {{ userRating }} ⭐</button>
+        <div v-else>
+          <label>Rate this Recipe:</label>
+          <select v-model="userRating">
+            <option :value="null" disabled>Select a rating</option>
+            <option v-for="n in 5" :key="n" :value="n">{{ n }} ⭐</option>
+          </select>
+          <button @click="bookmarkRecipe">Bookmark</button>
         </div>
       </div>
 
@@ -190,231 +264,82 @@ export default defineComponent({
         <h3>Description</h3>
         <p>{{ recipe.description }}</p>
       </section>
-
-      <!-- Ingredients -->
-      <section class="ingredients-section">
-        <h3>Ingredients</h3>
-        <ul class="ingredients">
-          <li v-for="(ingredient, index) in recipe.ingredients" :key="index">
-            <span class="quantity">{{ ingredient[1] }}</span>
-            <span class="item">{{ ingredient[0] }}</span>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Instructions -->
-      <section class="instructions-section">
-        <h3>Instructions</h3>
-        <ol class="instructions">
-          <li v-for="(instruction, index) in recipe.instructions" :key="index">
-            {{ instruction }}
-          </li>
-        </ol>
-      </section>
-
-      <!-- Keywords -->
-      <section class="keywords-section">
-        <h3>Keywords</h3>
-        <div class="keywords">
-          <span v-for="(keyword, index) in recipe.keywords" :key="index" class="keyword">
-            {{ keyword }}
-          </span>
-        </div>
-      </section>
     </div>
+
+    <!-- Recommendations -->
+    <section v-if="recommendedRecipes.length" class="recommendations">
+      <h3>Recommended Recipes</h3>
+      <div class="recipe-list">
+        <RecipeCard v-for="recipe in recommendedRecipes" :key="recipe.recipe_id" :recipe="recipe"
+          :fallback="recipe.fallback" />
+      </div>
+    </section>
+
   </div>
 </template>
 
 <style scoped>
-/* Container styling */
 .recipe-page {
   max-width: 800px;
   margin: auto;
   padding: 20px;
-  background: var(--app-bg, #ffffff);
-  color: var(--app-text, #242424);
+  background: white;
+  color: #242424;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-/* Title */
 .recipe-title {
   text-align: center;
   font-size: 2.5em;
   margin-bottom: 20px;
 }
 
-/* Loading & error */
 .loading {
   text-align: center;
   font-size: 18px;
   margin: 20px 0;
 }
+
 .error {
   color: red;
   text-align: center;
   margin-bottom: 20px;
 }
 
-/* Carousel styles */
-.carousel {
-  position: relative;
-  margin-bottom: 20px;
-}
-.carousel-image-container {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-}
-.carousel-image {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border-radius: 5px;
-  transition: transform 0.3s ease-in-out;
-}
-.fallback-container {
-  position: relative;
-}
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 99%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  padding-bottom: 10px;
-  color: #b4a984;
-  font-size: 14px;
+/* Bookmark Section */
+.bookmark-section {
+  margin-top: 20px;
+  text-align: center;
 }
 
-/* Carousel navigation */
-.prev,
-.next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
+.bookmarked-btn {
+  background-color: green;
   color: white;
   border: none;
   padding: 10px;
-  cursor: pointer;
-  font-size: 18px;
-  border-radius: 50%;
-  z-index: 1;
-  transition: background-color 0.3s;
-}
-.prev:hover,
-.next:hover {
-  background-color: rgba(0, 0, 0, 0.8);
-}
-.prev {
-  left: 10px;
-}
-.next {
-  right: 10px;
-}
-.indicators {
-  position: absolute;
-  bottom: 10px;
-  width: 100%;
-  text-align: center;
-}
-.dot {
-  height: 10px;
-  width: 10px;
-  margin: 0 5px;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  display: inline-block;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-.dot.active {
-  background-color: white;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+  cursor: not-allowed;
 }
 
-/* Recipe info */
-.recipe-info {
-  margin: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-.header-info,
-.time-info,
-.nutrition {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-.header-info p,
-.time-info p,
-.nutrition p {
-  margin: 0;
-  font-size: 14px;
+select {
+  margin-right: 10px;
+  padding: 5px;
 }
 
-/* Sections */
-.description,
-.ingredients-section,
-.instructions-section,
-.keywords-section {
+/* Description */
+.description {
   margin-top: 20px;
   text-align: left;
 }
-h3 {
-  font-size: 22px;
-  margin-bottom: 10px;
-  border-bottom: 2px solid #ccc;
-  padding-bottom: 5px;
+
+/* Recommend section */
+.recommendations {
+  margin-top: 30px;
 }
 
-/* Ingredients */
-.ingredients {
-  list-style: none;
-  padding: 0;
-}
-.ingredients li {
-  padding: 5px 0;
-  font-size: 16px;
-}
-.quantity {
-  font-weight: bold;
-  margin-right: 5px;
-}
-
-/* Instructions */
-.instructions {
-  padding-left: 20px;
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-/* Keywords */
-.keywords {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-.keyword {
-  background-color: #f1f1f1;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 14px;
-  color: #555;
+.recipe-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
 }
 </style>
