@@ -109,6 +109,9 @@ export default defineComponent({
       <li v-if="isLoggedIn">
         <a href="javascript:void(0);" class="nav-link" @click="handleLogout">Logout</a>
       </li>
+      <li v-if="isLoggedIn">
+        <router-link to="/bookmark" class="nav-link" exact>Bookmark</router-link>
+      </li>
     </ul>
 
     <!-- Login Popup -->

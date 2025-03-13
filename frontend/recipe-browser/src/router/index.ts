@@ -6,6 +6,7 @@ import HomePage from '@/views/HomePage.vue';
 import SearchPage from '@/views/SearchPage.vue';
 import RecipePage from '@/views/RecipePage.vue';
 import RegisterPage from '@/views/RegisterPage.vue';
+import BookmarkPage from '@/views/BookmarkPage.vue';
 
 
 // Define routes
@@ -14,6 +15,11 @@ const routes = [
     path: '/',
     name: 'Home',
     component: HomePage,
+  },
+  {
+    path: '/bookmark',
+    name: 'Bookmark',
+    component: BookmarkPage,
   },
   {
     path: '/register',
