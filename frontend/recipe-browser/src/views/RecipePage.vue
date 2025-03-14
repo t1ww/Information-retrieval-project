@@ -19,9 +19,7 @@ export default defineComponent({
     const recommendedRecipes = ref<Recipe[]>([]);
     const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
 
-    /**
-     * Fetch recommended recipes for the user
-     */
+    // Fetch recommended recipes for the user
     const fetchRecommendations = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -53,9 +51,7 @@ export default defineComponent({
       }
     };
 
-    /**
-     * Fetch fallback image for recipes without images
-     */
+    // Fetch fallback image for recipes without images
     const fetchFallbackImage = async (query: string): Promise<string> => {
       if (fallbackImageCache.has(query)) {
         return fallbackImageCache.get(query) || "";
@@ -80,9 +76,7 @@ export default defineComponent({
       }
     };
 
-    /**
-     * Fetch recipe details from the backend
-     */
+    // Fetch recipe details from the backend
     const fetchRecipe = async () => {
       isLoading.value = true;
       errorMessage.value = null;
@@ -134,10 +128,9 @@ export default defineComponent({
       }
     };
 
-    /**
-     * Bookmark the recipe with a rating.
-     * Prevents submission if no rating is selected.
-     */
+
+    // Bookmark the recipe with a rating.
+    // Prevents submission if no rating is selected.
     const bookmarkRecipe = async () => {
       if (userRating.value === null) {
         bookmarkErrorMessage.value = "Please select a rating before bookmarking.";

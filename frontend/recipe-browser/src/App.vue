@@ -20,3 +20,7 @@ export default defineComponent({
     <router-view />
   </div>
 </template>
+
+<style scoped>
+
+</style>

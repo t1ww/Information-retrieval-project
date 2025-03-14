@@ -1,14 +1,14 @@
 <script lang="ts">
 import { defineComponent, ref, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import RecipeCard from "@/components/RecipeCard.vue";
+import RecipeList from "@/components/RecipeList.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import type { Recipe } from "@/type"
 
 export default defineComponent({
   name: "SearchPage",
   components: {
-    RecipeCard,
+    RecipeList,
     SearchBar,
   },
   setup() {
@@ -19,9 +19,7 @@ export default defineComponent({
     const errorMessage = ref<string | null>(null);
     const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
 
-    /**
-     * Fetch the fallback image for a query (uses caching)
-     */
+    // Fetch the fallback image for a query (uses caching)
     const fetchFallbackImage = async (query: string): Promise<string> => {
       if (fallbackImageCache.has(query)) {
         return fallbackImageCache.get(query) || "";
@@ -44,9 +42,8 @@ export default defineComponent({
       }
     };
 
-    /**
-     * Fetch recipes, ensuring fallback images are assigned when necessary
-     */
+    // Fetch recipes, ensuring fallback images are assigned when necessary
+
     const fetchRecipes = async () => {
       const query = searchQuery.value.trim();
       if (!query) {
@@ -87,9 +84,7 @@ export default defineComponent({
       }
     };
 
-    /**
-     * Watch for changes in the query and update recipes accordingly
-     */
+    // Watch for changes in the query and update recipes accordingly
     watch(
       () => route.query.query || route.query.q,
       async (newQuery) => {
@@ -122,22 +117,15 @@ export default defineComponent({
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
     <div v-if="recipes.length" class="recipe-list">
-      <RecipeCard
-        v-for="recipe in recipes"
-        :key="recipe.recipe_id"
-        :recipe="recipe"
-        :fallback="recipe.fallback"
-      />
+      <RecipeList :recipes="recipes"/>
     </div>
     <div v-else-if="!isLoading && !errorMessage">No recipes found.</div>
   </div>
 </template>
 
 <style scoped>
-.recipe-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+div {
+  width: 100%;
 }
 .error {
   color: red;
