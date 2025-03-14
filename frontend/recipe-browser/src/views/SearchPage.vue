@@ -3,14 +3,7 @@ import { defineComponent, ref, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import RecipeCard from "@/components/RecipeCard.vue";
 import SearchBar from "@/components/SearchBar.vue";
-
-interface Recipe {
-  recipe_id: string;
-  name: string;
-  snippet: string;
-  image_urls: string[];
-  fallback?: boolean;
-}
+import type { Recipe } from "@/type"
 
 export default defineComponent({
   name: "SearchPage",
