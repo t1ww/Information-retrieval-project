@@ -20,7 +20,6 @@ export interface RecipeDetailed {
     prep_time: string;
     total_time: string;
     keywords: string[];
-    fallback?: boolean;
 }
 
 export interface Recipe {
@@ -28,5 +27,4 @@ export interface Recipe {
     name: string;
     snippet: string;
     image_urls: string[];
-    fallback?: boolean;
 }

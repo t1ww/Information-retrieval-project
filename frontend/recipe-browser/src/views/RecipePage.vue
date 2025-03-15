@@ -383,8 +383,10 @@ select {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3); /* Darkens the image */
-  z-index: 1; /* Ensure the overlay is above the image */
+  background: rgba(0, 0, 0, 0.3);
+  /* Darkens the image */
+  z-index: 1;
+  /* Ensure the overlay is above the image */
 }
 
 .overlay span {
@@ -397,9 +399,10 @@ select {
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  background: rgba(50, 32, 22, 0.5); /* Darkens the image */
+  background: rgba(50, 32, 22, 0.5);
+  /* Darkens the image */
   border-radius: .5em;
-  z-index: 2; /* Ensure text is above the overlay */
+  z-index: 2;
+  /* Ensure text is above the overlay */
 }
-
 </style>

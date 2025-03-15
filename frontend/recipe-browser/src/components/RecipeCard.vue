@@ -1,40 +1,107 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref, onMounted } from 'vue';
+import type { Recipe } from '@/type';
 
-interface Recipe {
-  recipe_id: string
-  name: string
-  snippet: string
-  image_urls: string[]
-}
+const imageCache = new Map<string, string>(); // In-memory cache for images
 
 export default defineComponent({
   name: 'RecipeCard',
   props: {
     recipe: {
       type: Object as () => Recipe,
-      required: true
+      required: true,
     },
-    fallback: {
-      type: Boolean,
-      default: false
-    }
-  }
-})
+  },
+  setup(props) {
+    const fallbackImage = ref<string>(''); // Holds the fallback image URL
+    const fallback = ref<boolean>(false); // Indicates whether a fallback is needed
+    const cachedImage = ref<string>(''); // Holds the cached normal recipe image URL
+
+    // Fetch fallback image for recipes without images
+    const fetchFallbackImage = async (query: string): Promise<string> => {
+      // Check if image is cached
+      if (imageCache.has(query)) {
+        return imageCache.get(query) || '';
+      }
+
+      try {
+        const response = await fetch(
+          `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`,
+          {
+            method: 'GET',
+            headers: { Authorization: 'dev' },
+            credentials: 'include',
+          }
+        );
+        if (!response.ok) throw new Error(`Error fetching image: ${response.statusText}`);
+        const imageData = await response.json();
+        const imageUrl = imageData.result?.image_urls?.[0] || '';
+
+        // Cache the result
+        imageCache.set(query, imageUrl);
+
+        return imageUrl;
+      } catch (error) {
+        console.error('Error fetching fallback image:', error);
+        return '';
+      }
+    };
+
+    // Fetch and cache normal image
+    const fetchNormalImage = async (imageUrl: string): Promise<string> => {
+      // Check if normal image is already cached
+      if (imageCache.has(imageUrl)) {
+        return imageCache.get(imageUrl) || '';
+      }
+
+      try {
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+        if (response.ok) {
+          // Cache the normal image URL if it's valid
+          imageCache.set(imageUrl, imageUrl);
+          return imageUrl;
+        }
+      } catch (error) {
+        console.error('Error fetching normal image:', error);
+      }
+
+      return '';
+    };
+
+    // If no image is available for the recipe, fetch the fallback image
+    onMounted(async () => {
+      if (props.recipe.image_urls && props.recipe.image_urls.length > 0) {
+        // If the recipe has a normal image, fetch and cache it
+        cachedImage.value = await fetchNormalImage(props.recipe.image_urls[0]);
+      } else {
+        // Otherwise, fetch the fallback image
+        fallback.value = true;
+        fallbackImage.value = await fetchFallbackImage(props.recipe.name);
+      }
+    });
+
+    return {
+      fallbackImage,
+      fallback,
+      cachedImage,
+    };
+  },
+});
 </script>
+
 
 <template>
   <div class="recipe-card">
     <div class="recipe-image">
-      <template v-if="fallback && recipe.image_urls.length">
+      <template v-if="fallback && fallbackImage">
         <div class="fallback-container">
-          <img :src="recipe.image_urls[0]" alt="Fallback Recipe Image" />
+          <img :src="fallbackImage" alt="Fallback Recipe Image" />
           <div class="overlay">
             <span>*Taken from nearest image</span>
           </div>
         </div>
       </template>
-      <template v-else-if="recipe.image_urls.length">
+      <template v-else-if="recipe.image_urls && recipe.image_urls.length">
         <img :src="recipe.image_urls[0]" alt="Recipe Image" />
       </template>
       <template v-else>
