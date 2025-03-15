@@ -7,7 +7,6 @@ interface Recipe {
     name: string;
     snippet: string;
     image_urls: string[];
-    fallback?: boolean;
     rating?: number;
 }
 
@@ -20,35 +19,9 @@ export default defineComponent({
         const isLoading = ref<boolean>(true);
         const errorMessage = ref<string | null>(null);
         const newFolderName = ref<string>("");
-        const fallbackImageCache = new Map<string, string>();
 
         // This will store the selected folder for each bookmark by recipe_id
         const folderAssignment = reactive<{ [recipeId: string]: string }>({});
-
-        // Fetch fallback image logic
-        const fetchFallbackImage = async (query: string): Promise<string> => {
-            if (fallbackImageCache.has(query)) {
-                return fallbackImageCache.get(query) || "";
-            }
-            try {
-                const response = await fetch(
-                    `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`,
-                    {
-                        method: "GET",
-                        headers: { Authorization: "dev" },
-                        credentials: "include",
-                    }
-                );
-                if (!response.ok) throw new Error("Error fetching fallback image");
-                const imageData = await response.json();
-                const imageUrl = imageData.result?.image_urls?.[0] || "";
-                fallbackImageCache.set(query, imageUrl);
-                return imageUrl;
-            } catch (error) {
-                console.error("Error fetching fallback image:", error);
-                return "";
-            }
-        };
 
         // Fetch bookmarks from /user_bookmarks endpoint
         const fetchBookmarks = async () => {
@@ -70,15 +43,12 @@ export default defineComponent({
                         });
                         if (!recipeResponse.ok) return null;
                         const recipeData = await recipeResponse.json();
-                        const fallbackImage = await fetchFallbackImage(recipeData.name);
                         // Initialize folder assignment for this bookmark (if not already set)
                         if (!folderAssignment[recipeData.recipe_id]) {
                             folderAssignment[recipeData.recipe_id] = "";
                         }
                         return {
                             ...recipeData,
-                            image_urls: recipeData.image_urls.length ? recipeData.image_urls : [fallbackImage],
-                            fallback: recipeData.image_urls.length === 0,
                             rating: bookmark.rating,
                         };
                     })
@@ -117,11 +87,8 @@ export default defineComponent({
                             });
                             if (!recipeResponse.ok) return null;
                             const recipeData = await recipeResponse.json();
-                            const fallbackImage = await fetchFallbackImage(recipeData.name);
                             return {
                                 ...recipeData,
-                                image_urls: recipeData.image_urls.length ? recipeData.image_urls : [fallbackImage],
-                                fallback: recipeData.image_urls.length === 0,
                             };
                         })
                     );
@@ -216,6 +183,7 @@ export default defineComponent({
 });
 </script>
 
+
 <template>
     <div class="bookmark-page">
         <h1>Your Bookmarks</h1>
@@ -223,7 +191,7 @@ export default defineComponent({
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
         <div v-if="bookmarks.length" class="recipe-list">
             <div v-for="bookmark in bookmarks" :key="bookmark.recipe_id" class="bookmark-item">
-                <RecipeCard :recipe="bookmark" :fallback="bookmark.fallback" />
+                <RecipeCard :recipe="bookmark" />
                 <button @click="removeBookmark(bookmark.recipe_id)">❌ Remove</button>
                 <!-- Folder assignment UI -->
                 <div class="folder-assignment">
@@ -250,7 +218,6 @@ export default defineComponent({
                             v-for="recipe in recipes"
                             :key="recipe.recipe_id"
                             :recipe="recipe"
-                            :fallback="recipe.fallback"
                         />
                     </div>
                 </div>

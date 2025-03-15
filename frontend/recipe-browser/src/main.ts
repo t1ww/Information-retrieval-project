@@ -19,22 +19,5 @@ router.afterEach(() => {
 
 app.use(router);
 
-// Create a global cache object
-const fallbackImageCache = new Map<string, string>();
-
-// Function to clear the cache and force reload images
-const clearFallbackImageCache = () => {
-  fallbackImageCache.clear();
-};
-
-// Call to clear the cache once
-clearFallbackImageCache();
-
-// For cache busting
-const forceImageReload = (imageUrl: string) => {
-  // Append a unique query string to force the image to reload
-  return `${imageUrl}?_=${new Date().getTime()}`;
-};
-
 // Mount app
 app.mount('#app');
