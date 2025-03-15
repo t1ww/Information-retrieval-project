@@ -3,7 +3,7 @@ import { defineComponent, ref, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import RecipeList from "@/components/RecipeList.vue";
 import SearchBar from "@/components/SearchBar.vue";
-import type { Recipe } from "@/type"
+import type { Recipe } from "@/type";
 
 export default defineComponent({
   name: "SearchPage",
@@ -17,33 +17,8 @@ export default defineComponent({
     const recipes = ref<Recipe[]>([]);
     const isLoading = ref<boolean>(false);
     const errorMessage = ref<string | null>(null);
-    const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
 
-    // Fetch the fallback image for a query (uses caching)
-    const fetchFallbackImage = async (query: string): Promise<string> => {
-      if (fallbackImageCache.has(query)) {
-        return fallbackImageCache.get(query) || "";
-      }
-      try {
-        const response = await fetch(`http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`, {
-          method: "GET",
-          headers: { "Authorization": "dev" },
-          credentials: "include",
-        });
-        if (!response.ok) throw new Error(`Error fetching image: ${response.statusText}`);
-
-        const imageData = await response.json();
-        const imageUrl = imageData.result?.image_urls?.[0] || "";
-        fallbackImageCache.set(query, imageUrl); // Store in cache
-        return imageUrl;
-      } catch (error) {
-        console.error("Error fetching fallback image:", error);
-        return "";
-      }
-    };
-
-    // Fetch recipes, ensuring fallback images are assigned when necessary
-
+    // Fetch recipes without fallback images
     const fetchRecipes = async () => {
       const query = searchQuery.value.trim();
       if (!query) {
@@ -55,9 +30,6 @@ export default defineComponent({
       errorMessage.value = null;
 
       try {
-        // Get fallback image (cached if available)
-        const fallbackImage = await fetchFallbackImage(query);
-
         // Fetch recipes
         const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}`, {
           method: "GET",
@@ -70,11 +42,10 @@ export default defineComponent({
         const data = await response.json();
         const fetchedRecipes = data.results || [];
 
-        // Assign fallback image where needed
+        // Directly assign recipes without fallback images
         recipes.value = fetchedRecipes.map((recipe: Recipe) => ({
           ...recipe,
-          image_urls: recipe.image_urls.length ? recipe.image_urls : [fallbackImage],
-          fallback: recipe.image_urls.length === 0,
+          fallbackImage: false, // No fallback image handling anymore
         }));
       } catch (error) {
         errorMessage.value = (error as Error).message;
@@ -117,7 +88,7 @@ export default defineComponent({
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
     <div v-if="recipes.length" class="recipe-list">
-      <RecipeList :recipes="recipes"/>
+      <RecipeList :recipes="recipes" />
     </div>
     <div v-else-if="!isLoading && !errorMessage">No recipes found.</div>
   </div>
@@ -127,6 +98,7 @@ export default defineComponent({
 div {
   width: 100%;
 }
+
 .error {
   color: red;
 }

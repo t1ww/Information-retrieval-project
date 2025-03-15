@@ -248,7 +248,6 @@ export default defineComponent({
           v-for="recipe in recommendedRecipes"
           :key="recipe.recipe_id"
           :recipe="recipe"
-          :fallback="recipe.fallback"
         />
       </div>
     </section>

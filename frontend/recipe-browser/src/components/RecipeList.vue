@@ -19,7 +19,7 @@ export default defineComponent({
 
 <template>
     <div v-if="recipes.length" class="recipe-list">
-        <RecipeCard v-for="recipe in recipes" :key="recipe.recipe_id" :recipe="recipe" :fallback="recipe.fallback" />
+        <RecipeCard v-for="recipe in recipes" :key="recipe.recipe_id" :recipe="recipe" />
     </div>
     <div v-else>No recipes found.</div>
 </template>
