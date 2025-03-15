@@ -1,40 +1,68 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
-
-interface Recipe {
-  recipe_id: string
-  name: string
-  snippet: string
-  image_urls: string[]
-}
+import { defineComponent, ref, onMounted } from 'vue';
+import type { Recipe } from '@/type';
 
 export default defineComponent({
   name: 'RecipeCard',
   props: {
     recipe: {
       type: Object as () => Recipe,
-      required: true
+      required: true,
     },
-    fallback: {
-      type: Boolean,
-      default: false
-    }
-  }
-})
+  },
+  setup(props) {
+    const fallbackImage = ref<string>(''); // Holds the fallback image URL
+    const fallback = ref<boolean>(false); // Indicates whether a fallback is needed
+
+    // Fetch fallback image for recipes without images
+    const fetchFallbackImage = async (query: string): Promise<string> => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/search_nearest_image?query=${encodeURIComponent(query)}`,
+          {
+            method: 'GET',
+            headers: { Authorization: 'dev' },
+            credentials: 'include',
+          }
+        );
+        if (!response.ok) throw new Error(`Error fetching image: ${response.statusText}`);
+        const imageData = await response.json();
+        return imageData.result?.image_urls?.[0] || '';
+      } catch (error) {
+        console.error('Error fetching fallback image:', error);
+        return '';
+      }
+    };
+
+    // If no image is available for the recipe, fetch the fallback image
+    onMounted(async () => {
+      if (!props.recipe.image_urls || props.recipe.image_urls.length === 0) {
+        console.log("Fetching fallback image..")
+        fallback.value = true; // Set fallback to true if no image exists
+        fallbackImage.value = await fetchFallbackImage(props.recipe.name);
+      }
+    });
+
+    return {
+      fallbackImage,
+      fallback,
+    };
+  },
+});
 </script>
 
 <template>
   <div class="recipe-card">
     <div class="recipe-image">
-      <template v-if="fallback && recipe.image_urls.length">
+      <template v-if="fallback && fallbackImage">
         <div class="fallback-container">
-          <img :src="recipe.image_urls[0]" alt="Fallback Recipe Image" />
+          <img :src="fallbackImage" alt="Fallback Recipe Image" />
           <div class="overlay">
             <span>*Taken from nearest image</span>
           </div>
         </div>
       </template>
-      <template v-else-if="recipe.image_urls.length">
+      <template v-else-if="recipe.image_urls && recipe.image_urls.length">
         <img :src="recipe.image_urls[0]" alt="Recipe Image" />
       </template>
       <template v-else>
