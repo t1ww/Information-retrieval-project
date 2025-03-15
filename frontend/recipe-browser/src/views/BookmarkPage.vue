@@ -163,6 +163,29 @@ export default defineComponent({
             }
         };
 
+        // Remove a recipe from a folder using /folder_recipes DELETE
+        const removeRecipeFromFolder = async (recipeId: string, folderName: string) => {
+            try {
+                const token = localStorage.getItem("authToken");
+                if (!token) return;
+                const response = await fetch("http://localhost:5000/folder_recipes", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token,
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({ folder_name: folderName, recipe_id: recipeId }),
+                });
+                if (!response.ok) throw new Error("Failed to remove recipe from folder");
+
+                // Optionally, refresh folders
+                await fetchFolders(); // This will refresh the folders data
+            } catch (error) {
+                console.error("Error removing recipe from folder:", error);
+            }
+        };
+
         onMounted(async () => {
             await fetchBookmarks();
             await fetchFolders();
@@ -177,7 +200,8 @@ export default defineComponent({
             newFolderName,
             createFolder,
             assignBookmarkToFolder,
-            folderAssignment
+            folderAssignment,
+            removeRecipeFromFolder
         };
     },
 });
@@ -214,13 +238,15 @@ export default defineComponent({
                 <div v-for="(recipes, folder) in folders" :key="folder">
                     <h4>{{ folder }}</h4>
                     <div class="recipe-list">
-                        <RecipeCard
-                            v-for="recipe in recipes"
-                            :key="recipe.recipe_id"
-                            :recipe="recipe"
-                        />
+                        <div v-for="recipe in recipes" :key="recipe.recipe_id" class="folder-recipe-item">
+                            <RecipeCard :recipe="recipe" />
+                            <button @click="removeRecipeFromFolder(recipe.recipe_id, folder)">
+                                ❌ Remove from Folder
+                            </button>
+                        </div>
                     </div>
                 </div>
+
             </div>
             <div v-else>No folders created yet.</div>
             <h3>Create a New Folder</h3>
@@ -233,20 +259,38 @@ export default defineComponent({
 <style scoped>
 .recipe-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
     gap: 20px;
 }
+
 .bookmark-item {
     border: 1px solid #ccc;
     padding: 10px;
 }
+
 .folder-assignment {
     margin-top: 10px;
 }
+
 .folders {
     margin-top: 30px;
 }
+
 .error {
     color: red;
 }
+
+.folder-recipe-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.folder-recipe-item button {
+    margin-left: auto;
+    color: red;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
 </style>
