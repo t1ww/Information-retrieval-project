@@ -13,14 +13,8 @@ export default defineComponent({
 </script>
 
 <template>
-  <div id="app">
-    <!-- NavBar component -->
-    <NavBar class="hover-color" />
-    <!-- Router-view where route components will be rendered -->
-    <router-view />
-  </div>
+  <!-- NavBar component -->
+  <NavBar class="hover-color" />
+  <!-- Router-view where route components will be rendered -->
+  <router-view />
 </template>
-
-<style scoped>
-
-</style>

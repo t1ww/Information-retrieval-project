@@ -207,90 +207,237 @@ export default defineComponent({
 });
 </script>
 
-
 <template>
     <div class="bookmark-page">
         <h1>Your Bookmarks</h1>
-        <div v-if="isLoading">Loading...</div>
+
+        <div v-if="isLoading" class="loading">Loading...</div>
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
+
         <div v-if="bookmarks.length" class="recipe-list">
             <div v-for="bookmark in bookmarks" :key="bookmark.recipe_id" class="bookmark-item">
                 <RecipeCard :recipe="bookmark" />
-                <button @click="removeBookmark(bookmark.recipe_id)">❌ Remove</button>
-                <!-- Folder assignment UI -->
-                <div class="folder-assignment">
-                    <select v-model="folderAssignment[bookmark.recipe_id]">
-                        <option disabled value="">Select Folder</option>
-                        <option v-for="folder in Object.keys(folders)" :key="folder" :value="folder">
-                            {{ folder }}
-                        </option>
-                    </select>
-                    <button @click="assignBookmarkToFolder(bookmark.recipe_id, folderAssignment[bookmark.recipe_id])">
-                        Set Folder
-                    </button>
+                <div class="bookmark-actions">
+                    <button @click="removeBookmark(bookmark.recipe_id)" class="remove-btn">❌ Remove</button>
+                    <div class="folder-assignment">
+                        <select v-model="folderAssignment[bookmark.recipe_id]" class="folder-select">
+                            <option disabled value="">Select Folder</option>
+                            <option v-for="folder in Object.keys(folders)" :key="folder" :value="folder">
+                                {{ folder }}
+                            </option>
+                        </select>
+                        <button @click="assignBookmarkToFolder(bookmark.recipe_id, folderAssignment[bookmark.recipe_id])"
+                            class="assign-btn">
+                            ➕ Set Folder
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div v-else-if="!isLoading">No bookmarks yet.</div>
+
+        <div v-else-if="!isLoading" class="empty-message">No bookmarks yet.</div>
+
         <section class="folders">
             <h3>Your Folders</h3>
-            <div v-if="Object.keys(folders).length">
-                <div v-for="(recipes, folder) in folders" :key="folder">
+            <div v-if="Object.keys(folders).length" class="folder-list">
+                <div v-for="(recipes, folder) in folders" :key="folder" class="folder-card">
                     <h4>{{ folder }}</h4>
-                    <div class="recipe-list">
+                    <div class="folder-recipes">
                         <div v-for="recipe in recipes" :key="recipe.recipe_id" class="folder-recipe-item">
                             <RecipeCard :recipe="recipe" />
-                            <button @click="removeRecipeFromFolder(recipe.recipe_id, folder)">
-                                ❌ Remove from Folder
+                            <button @click="removeRecipeFromFolder(recipe.recipe_id, folder)" class="remove-folder-btn">
+                                ❌ Remove
                             </button>
                         </div>
                     </div>
                 </div>
-
             </div>
-            <div v-else>No folders created yet.</div>
+            <div v-else class="empty-message">No folders created yet.</div>
+
             <h3>Create a New Folder</h3>
-            <input v-model="newFolderName" placeholder="Folder name" />
-            <button @click="createFolder">➕ Create</button>
+            <div class="folder-creation">
+                <input v-model="newFolderName" placeholder="Folder name" class="folder-input" />
+                <button @click="createFolder" class="create-folder-btn">➕ Create</button>
+            </div>
         </section>
     </div>
 </template>
 
 <style scoped>
+/* Dark Theme Styles */
+.bookmark-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #121212; /* Dark background */
+    color: #ffffff; /* White text */
+}
+
+h1, h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #ffffff; /* Ensures headings are readable */
+}
+
+/* Loading & Error Messages */
+.loading,
+.error,
+.empty-message {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.error {
+    color: #ff4d4d;
+    font-weight: bold;
+}
+
+/* Recipe List */
 .recipe-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
 }
 
 .bookmark-item {
-    border: 1px solid #ccc;
-    padding: 10px;
+    background: #1e1e1e; /* Darker card background */
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1); /* Softer shadow */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
+.bookmark-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.remove-btn,
+.remove-folder-btn {
+    background: #b83a3a;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.remove-btn:hover,
+.remove-folder-btn:hover {
+    background: #ffabab;
+}
+
+/* Folder Assignment */
 .folder-assignment {
-    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
 }
 
+.folder-select {
+    flex: 1;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #555; /* Darker border */
+    background: #1e1e1e;
+    color: white;
+}
+
+.assign-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.assign-btn:hover {
+    background: #91ff96;
+}
+
+/* Folder Section */
 .folders {
     margin-top: 30px;
 }
 
-.error {
-    color: red;
+.folder-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+/* Folder Cards */
+.folder-card {
+    background: #1e1e1e; /* Darker background */
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1);
+}
+
+.folder-card h4 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Folder Recipes */
+.folder-recipes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
 }
 
 .folder-recipe-item {
+    background: #2a2a2a;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0px 2px 4px rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-.folder-recipe-item button {
-    margin-left: auto;
-    color: red;
-    background: none;
-    border: none;
-    cursor: pointer;
+    flex-direction: column; /* Stack items vertically */
+    justify-content: space-between;
 }
 
+/* Create Folder */
+.folder-creation {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.folder-input {
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #1e1e1e;
+    color: white;
+}
+
+.create-folder-btn {
+    background: #007BFF;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.create-folder-btn:hover {
+    background: #86c0ff;
+}
 </style>

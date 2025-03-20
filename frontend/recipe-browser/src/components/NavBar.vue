@@ -69,7 +69,7 @@ export default defineComponent({
           localStorage.removeItem('authUsername')
           localStorage.removeItem('authToken')
           router.go(0)
-        }, 1500) // Delay logout
+        }, 1500) // Delay logout  
       }
     }
 
