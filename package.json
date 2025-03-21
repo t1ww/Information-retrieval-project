@@ -1,0 +1,21 @@
+{
+  "name": "information-retrieval-project",
+  "version": "1.0.0",
+  "description": "Food reciepe browser project",
+  "homepage": "https://github.com/t1ww/Information-retrieval-project#readme",
+  "bugs": {
+    "url": "https://github.com/t1ww/Information-retrieval-project/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t1ww/Information-retrieval-project.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd frontend/recipe-browser && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
