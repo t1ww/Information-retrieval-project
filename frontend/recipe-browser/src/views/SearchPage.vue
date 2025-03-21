@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, ref, watch, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import RecipeList from "@/components/RecipeList.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import type { Recipe } from "@/type";
@@ -13,16 +13,19 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
+    const router = useRouter();
     const searchQuery = ref<string>(String(route.query.query || route.query.q || "").trim());
+    const suggestedQuery = ref<string | null>(null); // Store suggested query
     const recipes = ref<Recipe[]>([]);
     const isLoading = ref<boolean>(false);
     const errorMessage = ref<string | null>(null);
 
-    // Fetch recipes without fallback images
+    // Fetch recipes with suggested query
     const fetchRecipes = async () => {
       const query = searchQuery.value.trim();
       if (!query) {
         recipes.value = [];
+        suggestedQuery.value = null;
         return;
       }
 
@@ -30,7 +33,6 @@ export default defineComponent({
       errorMessage.value = null;
 
       try {
-        // Fetch recipes
         const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}`, {
           method: "GET",
           headers: { "Authorization": "dev" },
@@ -42,7 +44,10 @@ export default defineComponent({
         const data = await response.json();
         const fetchedRecipes = data.results || [];
 
-        // Directly assign recipes without fallback images
+        // Store suggested query without applying it
+        suggestedQuery.value = data.suggested_query || null;
+
+        // Directly assign recipes
         recipes.value = fetchedRecipes.map((recipe: Recipe) => ({
           ...recipe,
           fallbackImage: false, // No fallback image handling anymore
@@ -55,7 +60,15 @@ export default defineComponent({
       }
     };
 
-    // Watch for changes in the query and update recipes accordingly
+    // User accepts the suggested query
+    const applySuggestedQuery = () => {
+      if (suggestedQuery.value) {
+        searchQuery.value = suggestedQuery.value;
+        router.push({ query: { query: suggestedQuery.value } }); // Update URL
+      }
+    };
+
+    // Watch for query changes in the URL and fetch data
     watch(
       () => route.query.query || route.query.q,
       async (newQuery) => {
@@ -71,9 +84,11 @@ export default defineComponent({
 
     return {
       searchQuery,
+      suggestedQuery,
       recipes,
       isLoading,
       errorMessage,
+      applySuggestedQuery,
     };
   },
 });
@@ -86,6 +101,12 @@ export default defineComponent({
 
     <div v-if="isLoading">Loading...</div>
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
+
+    <!-- Suggested Query Display -->
+    <div v-if="suggestedQuery && suggestedQuery !== searchQuery" class="suggestion">
+      Did you mean: 
+      <button @click="applySuggestedQuery" class="suggested-btn">{{ suggestedQuery }}</button>?
+    </div>
 
     <div v-if="recipes.length" class="recipe-list">
       <RecipeList :recipes="recipes" />
@@ -101,5 +122,22 @@ div {
 
 .error {
   color: red;
+}
+
+.suggestion {
+  margin: 10px 0;
+  font-size: 1.1em;
+}
+
+.suggested-btn {
+  background: none;
+  border: none;
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 1.1em;
+}
+.suggested-btn:hover {
+  color: darkblue;
 }
 </style>
