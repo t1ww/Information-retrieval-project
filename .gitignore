@@ -1,5 +1,4 @@
 /__pycache__
 /resource
-*.pkl
 /app/__pycache__
 /indexer/__pycache__
