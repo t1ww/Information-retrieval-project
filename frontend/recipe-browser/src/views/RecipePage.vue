@@ -137,18 +137,30 @@ export default defineComponent({
           return;
         }
 
-        const response = await fetch("http://localhost:5000/recommendations", {
-          method: "GET",
-          headers: { Authorization: token },
-          credentials: "include",
-        });
+        // Pass the current recipe ID to the backend for personalized recommendations
+        const currentRecipeId = route.params.id; // Assuming the recipe ID is in the route params
+        if (!currentRecipeId) {
+          console.error("Current recipe ID is missing");
+          return;
+        }
+
+        const response = await fetch(
+          `http://localhost:5000/recommendations/current?current_recipe_id=${currentRecipeId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: token,
+            },
+            credentials: "include",
+          }
+        );
 
         if (!response.ok) throw new Error("Failed to fetch recommendations");
 
         const data = await response.json();
         recommendedRecipes.value = data.recommended_recipes;
 
-        // Assign fallback image where needed
+        // Assign fallback image where needed for recommended recipes
         const fallbackImg = await fetchFallbackImage(recipe.value?.name ?? "");
         recommendedRecipes.value = recommendedRecipes.value.map((rec: Recipe) => ({
           ...rec,
@@ -159,6 +171,8 @@ export default defineComponent({
         console.error("Error fetching recommendations:", error);
       }
     };
+
+
 
     onMounted(() => {
       fetchRecipe();
@@ -274,11 +288,15 @@ export default defineComponent({
 
     </div>
 
-    <!-- Recommendations -->
-    <section v-if="recommendedRecipes.length" class="recommendations">
+    <!-- Recommendations Section -->
+    <section v-if="recommendedRecipes.length > 0" class="recommendations">
       <h3>Recommended Recipes</h3>
       <RecipeList :recipes="recommendedRecipes" />
     </section>
+    <section v-else class="no-recommendations">
+      <p>No recommendations available at the moment.</p>
+    </section>
+
   </div>
 </template>
 
