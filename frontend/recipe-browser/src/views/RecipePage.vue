@@ -159,14 +159,6 @@ export default defineComponent({
 
         const data = await response.json();
         recommendedRecipes.value = data.recommended_recipes;
-
-        // Assign fallback image where needed for recommended recipes
-        const fallbackImg = await fetchFallbackImage(recipe.value?.name ?? "");
-        recommendedRecipes.value = recommendedRecipes.value.map((rec: Recipe) => ({
-          ...rec,
-          image_urls: rec.image_urls.length ? rec.image_urls : [fallbackImg],
-          fallback: rec.image_urls.length === 0,
-        }));
       } catch (error) {
         console.error("Error fetching recommendations:", error);
       }

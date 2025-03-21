@@ -141,7 +141,7 @@ export default defineComponent({
         };
 
         // Assign a bookmark to a folder using /folder_recipes POST endpoint
-        const assignBookmarkToFolder = async (recipeId: string, folderName: string) => {
+        const assignBookmarkToFolder = async (recipeId: string, folderName: string | number) => {
             if (!folderName) {
                 console.error("No folder selected for recipe", recipeId);
                 return;
@@ -164,7 +164,7 @@ export default defineComponent({
         };
 
         // Remove a recipe from a folder using /folder_recipes DELETE
-        const removeRecipeFromFolder = async (recipeId: string, folderName: string) => {
+        const removeRecipeFromFolder = async (recipeId: string, folderName: string | number) => {
             try {
                 const token = localStorage.getItem("authToken");
                 if (!token) return;
