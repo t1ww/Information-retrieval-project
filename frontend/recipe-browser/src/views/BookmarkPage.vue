@@ -79,8 +79,6 @@ export default defineComponent({
             }
         };
 
-
-
         // Remove a bookmark using /bookmark DELETE
         const removeBookmark = async (recipeId: string) => {
             try {
@@ -167,6 +165,32 @@ export default defineComponent({
             }
         };
 
+        // Delete a folder using the /folders DELETE endpoint
+        const deleteFolder = async (folderName: string | number) => {
+            try {
+                const token = localStorage.getItem("authToken");
+                if (!token) return;
+                const response = await fetch("http://localhost:5000/folders", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token,
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({ folder_name: folderName }),
+                });
+                if (!response.ok) throw new Error("Failed to delete folder");
+
+                // After deleting, remove the folder from the local state
+                delete folders.value[folderName];
+            } catch (error) {
+                console.error("Error deleting folder:", error);
+            }
+        };
+
+
+
+
         onMounted(async () => {
             await fetchBookmarks();
             await fetchFolders();
@@ -182,7 +206,8 @@ export default defineComponent({
             createFolder,
             assignBookmarkToFolder,
             folderAssignment,
-            removeRecipeFromFolder
+            removeRecipeFromFolder,
+            deleteFolder
         };
     },
 });
@@ -223,7 +248,11 @@ export default defineComponent({
             <h3>Your Folders</h3>
             <div v-if="Object.keys(folders).length" class="folder-list">
                 <div v-for="(recipes, folder) in folders" :key="folder" class="folder-card">
-                    <h4>{{ folder }}</h4>
+                    <!-- Delete folder button -->
+                    <h2>{{ folder }}</h2>
+                    <button @click="deleteFolder(folder)" class="delete-folder-btn">
+                        🗑️ Delete Folder
+                    </button>
                     <div class="folder-recipes">
                         <div v-for="recipe in recipes" :key="recipe.recipe_id" class="folder-recipe-item">
                             <RecipeCard :recipe="recipe" />
