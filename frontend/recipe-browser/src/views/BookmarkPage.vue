@@ -94,11 +94,18 @@ export default defineComponent({
                     body: JSON.stringify({ recipe_id: recipeId }),
                 });
                 if (!response.ok) throw new Error("Failed to remove bookmark");
+
+                // Remove the bookmark from the bookmarks array
                 bookmarks.value = bookmarks.value.filter(b => b.recipe_id !== recipeId);
+
+                // Optionally, remove the recipe from the folders (if needed) and refresh the folders
+                await fetchFolders(); // This will reload the folders after removal
+
             } catch (error) {
                 console.error("Error removing bookmark:", error);
             }
         };
+
 
         // Create a new folder using /folders POST
         const createFolder = async () => {
@@ -187,9 +194,6 @@ export default defineComponent({
                 console.error("Error deleting folder:", error);
             }
         };
-
-
-
 
         onMounted(async () => {
             await fetchBookmarks();
