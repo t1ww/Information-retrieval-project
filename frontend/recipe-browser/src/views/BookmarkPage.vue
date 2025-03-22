@@ -16,6 +16,16 @@ export default defineComponent({
         // This will store the selected folder for each bookmark by recipe_id
         const folderAssignment = reactive<{ [recipeId: string]: string }>({});
 
+        // Sort by rating (if available)
+        const sortByRating = (recipes: Recipe[]): Recipe[] => {
+            return recipes.sort((a, b) => {
+                // If no rating is available, consider it as 0 for sorting purposes
+                const ratingA = a.rating ?? 0;
+                const ratingB = b.rating ?? 0;
+                return ratingB - ratingA; // Sort in descending order
+            });
+        };
+
         // Fetch bookmarks from /user_bookmarks endpoint
         const fetchBookmarks = async () => {
             try {
@@ -28,7 +38,7 @@ export default defineComponent({
                 });
                 if (!response.ok) throw new Error("Failed to fetch bookmarks");
                 const data = await response.json();
-                bookmarks.value = data.bookmarks;
+                bookmarks.value = sortByRating(data.bookmarks);
             } catch (error) {
                 errorMessage.value = (error as Error).message;
             } finally {
@@ -81,9 +91,10 @@ export default defineComponent({
                         name: recipe.name,
                         snippet: recipe.snippet,
                         image_urls: recipe.image_urls || [], // Use empty array if no image_urls
+                        rating: recipe.rating || []
                     }));
 
-                    folderData[folderName] = recipeDetails;
+                    folderData[folderName] = sortByRating(recipeDetails);
                 }
 
                 // Update the folders state
