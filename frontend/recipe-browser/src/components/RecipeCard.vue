@@ -109,7 +109,7 @@ export default defineComponent({
       </template>
     </div>
     <div class="recipe-info">
-      <h3>{{ recipe.name }}</h3>
+      <h3>{{ recipe.name }} ⭐ {{ recipe.rating }}</h3>
       <p>{{ recipe.snippet }}</p>
     </div>
     <div class="recipe-actions">

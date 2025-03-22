@@ -27,4 +27,5 @@ export interface Recipe {
     name: string;
     snippet: string;
     image_urls: string[];
+    rating?: number;
 }

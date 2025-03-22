@@ -51,18 +51,32 @@ export default defineComponent({
                 if (!response.ok) throw new Error("Failed to fetch folders");
 
                 const data = await response.json();
+
+                // Extract response_time if present, and log or handle it as needed
+                const responseTime = data.response_time;
+                if (responseTime) {
+                    console.log("Response time:", responseTime);
+                    // Optionally, you can store it in the state if necessary
+                }
+
+                // Now process the folder data, ignoring the response_time
                 const folderData: { [key: string]: Recipe[] } = {};
 
                 // Iterate over each folder and process the recipe details
                 for (const folderName in data) {
-                    // Check if the data for a folder is an array
-                    if (!Array.isArray(data[folderName])) {
-                        console.error(`Expected an array for folder ${folderName}, got:`, data[folderName]);
+                    // Skip the response_time key
+                    if (folderName === "response_time") continue;
+
+                    const folderContent = data[folderName];
+
+                    // Check if the folder content is an array
+                    if (!Array.isArray(folderContent)) {
+                        console.warn(`Unexpected data for folder "${folderName}", got:`, folderContent);
                         continue;
                     }
 
                     // Directly use the recipes from the folder data
-                    const recipeDetails = data[folderName].map((recipe) => ({
+                    const recipeDetails = folderContent.map((recipe) => ({
                         recipe_id: recipe.recipe_id,
                         name: recipe.name,
                         snippet: recipe.snippet,
@@ -78,6 +92,7 @@ export default defineComponent({
                 console.error("Error fetching folders:", error);
             }
         };
+
 
         // Remove a bookmark using /bookmark DELETE
         const removeBookmark = async (recipeId: string) => {
