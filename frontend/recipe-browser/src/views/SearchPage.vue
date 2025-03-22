@@ -15,14 +15,17 @@ export default defineComponent({
     const route = useRoute();
     const router = useRouter();
     const searchQuery = ref<string>(String(route.query.query || route.query.q || "").trim());
+    const allergensQuery = ref<string>(String(route.query.excluded_allergens || "").trim()); // Track allergensQuery
     const suggestedQuery = ref<string | null>(null); // Store suggested query
     const recipes = ref<Recipe[]>([]);
     const isLoading = ref<boolean>(false);
     const errorMessage = ref<string | null>(null);
 
-    // Fetch recipes with suggested query
+    // Fetch recipes with query and allergensQuery
     const fetchRecipes = async () => {
       const query = searchQuery.value.trim();
+      const excludedAllergens = allergensQuery.value.trim();
+
       if (!query) {
         recipes.value = [];
         suggestedQuery.value = null;
@@ -33,7 +36,7 @@ export default defineComponent({
       errorMessage.value = null;
 
       try {
-        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}`, {
+        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}&excluded_allergens=${encodeURIComponent(excludedAllergens)}`, {
           method: "GET",
           headers: { "Authorization": "dev" },
           credentials: "include",
@@ -67,12 +70,11 @@ export default defineComponent({
         suggestedQuery.value = null; // Stop showing suggestions after applying
 
         setTimeout(() => {
-          router.replace({ query: { query: searchQuery.value } });
+          router.replace({ query: { query: searchQuery.value, excluded_allergens: allergensQuery.value } });
           fetchRecipes();
         }, 100);
       }
     };
-
 
     // Watch for query changes in the URL and fetch data
     watch(
@@ -85,10 +87,24 @@ export default defineComponent({
       },
       { immediate: true } // Runs on initial mount
     );
+
+    // Watch for allergensQuery changes in the URL and fetch data
+    watch(
+      () => route.query.excluded_allergens,
+      async (newAllergens) => {
+        if (newAllergens && String(newAllergens).trim() !== allergensQuery.value) {
+          allergensQuery.value = String(newAllergens).trim();
+          fetchRecipes();
+        }
+      },
+      { immediate: true } // Runs on initial mount
+    );
+
     onMounted(fetchRecipes);
 
     return {
       searchQuery,
+      allergensQuery, // Add allergensQuery to the return
       suggestedQuery,
       recipes,
       isLoading,
@@ -102,7 +118,7 @@ export default defineComponent({
 <template>
   <div>
     <h1>Search Recipes</h1>
-    <SearchBar :query="searchQuery" />
+    <SearchBar :query="searchQuery" :excludedAllergens="allergensQuery" />
 
     <div v-if="isLoading">Loading...</div>
     <div v-if="errorMessage" class="error">{{ errorMessage }}</div>

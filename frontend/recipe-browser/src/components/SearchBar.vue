@@ -10,7 +10,7 @@ export default defineComponent({
 
     // Use the route query parameters directly
     const searchQuery = ref(route.query.query || ""); // Initialize with query param
-    const allergensInput = ref(route.query.excluded_allergens || ""); // Initialize with excluded_allergens param
+    const allergensQuery = ref(route.query.excluded_allergens || ""); // Initialize with excluded_allergens param
     const errorMessage = ref("");
 
     // Watch for changes in route query params
@@ -24,16 +24,16 @@ export default defineComponent({
     watch(
       () => route.query.excluded_allergens,
       (newAllergens) => {
-        allergensInput.value = newAllergens || "";
-        console.log('Updated allergensInput:', allergensInput.value); // Debugging line
+        allergensQuery.value = newAllergens || "";
+        console.log('Updated allergensInput:', allergensQuery.value); // Debugging line
       }
     );
 
     // Ensure to initialize values on mount
     onMounted(() => {
       searchQuery.value = route.query.query || "";
-      allergensInput.value = route.query.excluded_allergens || "";
-      console.log('Initial allergensInput:', allergensInput.value); // Debugging line
+      allergensQuery.value = route.query.excluded_allergens || "";
+      console.log('Initial allergensInput:', allergensQuery.value); // Debugging line
     });
 
     const onSearchInput = () => {
@@ -49,7 +49,7 @@ export default defineComponent({
           path: "/search",
           query: {
             query: queryValue,
-            excluded_allergens: allergensInput.value
+            excluded_allergens: allergensQuery.value
           },
         });
       }
@@ -59,7 +59,7 @@ export default defineComponent({
     return {
       onSearchInput,
       searchQuery,
-      allergensInput,
+      allergensInput: allergensQuery,
       errorMessage,
     };
   },
