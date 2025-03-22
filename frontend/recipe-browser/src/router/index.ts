@@ -37,7 +37,7 @@ const routes = [
     component: SearchPage,
     beforeEnter: (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
       if (!to.query.query && !to.query.q) {
-        next({ path: '/search', query: { query: '' } }); // Default query if no query exists
+        next({ path: '/search', query: { query: '' , excluded_allergens : ''} }); // Default query if no query exists
       } else {
         next();
       }

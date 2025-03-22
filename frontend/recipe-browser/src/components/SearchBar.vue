@@ -1,41 +1,65 @@
 <script lang="ts">
-import { defineComponent, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { defineComponent, ref, watch, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
   name: "SearchBar",
-  props: {
-    query: {
-      type: String,
-      default: "",
-    },
-  },
-  setup(props) {
+  setup() {
     const router = useRouter();
-    const searchQuery = ref(props.query); // Use prop query to initialize the search input
-    const errorMessage = ref(""); // To hold the error message
+    const route = useRoute();
+
+    // Use the route query parameters directly
+    const searchQuery = ref(route.query.query || ""); // Initialize with query param
+    const allergensInput = ref(route.query.excluded_allergens || ""); // Initialize with excluded_allergens param
+    const errorMessage = ref("");
+
+    // Watch for changes in route query params
+    watch(
+      () => route.query.query,
+      (newQuery) => {
+        searchQuery.value = newQuery || "";
+      }
+    );
+
+    watch(
+      () => route.query.excluded_allergens,
+      (newAllergens) => {
+        allergensInput.value = newAllergens || "";
+        console.log('Updated allergensInput:', allergensInput.value); // Debugging line
+      }
+    );
+
+    // Ensure to initialize values on mount
+    onMounted(() => {
+      searchQuery.value = route.query.query || "";
+      allergensInput.value = route.query.excluded_allergens || "";
+      console.log('Initial allergensInput:', allergensInput.value); // Debugging line
+    });
 
     const onSearchInput = () => {
-      // Check if search query is empty
-      if (searchQuery.value.trim() === "") {
-        errorMessage.value = "Please enter a search query."; // Set error message
+      // Ensure that searchQuery is a string before calling trim
+      const queryValue = typeof searchQuery.value === "string" ? searchQuery.value : "";
+
+      if (queryValue.trim() === "") {
+        errorMessage.value = "Please enter a search query.";
       } else {
-        errorMessage.value = ""; // Clear any previous error
-        router.push({ path: "/search", query: { query: searchQuery.value } });
+        errorMessage.value = "";
+
+        router.push({
+          path: "/search",
+          query: {
+            query: queryValue,
+            excluded_allergens: allergensInput.value
+          },
+        });
       }
     };
 
-    // Watch for changes to the searchQuery prop and update the local ref if needed
-    watch(
-      () => props.query,
-      (newQuery) => {
-        searchQuery.value = newQuery;
-      }
-    );
 
     return {
       onSearchInput,
       searchQuery,
+      allergensInput,
       errorMessage,
     };
   },
@@ -46,12 +70,9 @@ export default defineComponent({
   <!-- Display error message if input is empty -->
   <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
   <div class="search-bar">
-    <input
-      type="text"
-      v-model="searchQuery"
-      placeholder="Search for a recipe..."
-      @keydown.enter="onSearchInput"
-    />
+    <input type="text" v-model="searchQuery" placeholder="Search for a recipe..." @keydown.enter="onSearchInput" />
+    <input type="text" v-model="allergensInput" placeholder="Exclude allergens (comma-separated)..."
+      @keydown.enter="onSearchInput" />
     <button @click="onSearchInput" class="search-button">Search</button>
   </div>
 </template>
