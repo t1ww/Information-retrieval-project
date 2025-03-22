@@ -38,7 +38,6 @@ export default defineComponent({
       try {
         const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}&excluded_allergens=${encodeURIComponent(excludedAllergens)}`, {
           method: "GET",
-          headers: { "Authorization": "dev" },
           credentials: "include",
         });
 
@@ -92,9 +91,10 @@ export default defineComponent({
     watch(
       () => route.query.excluded_allergens,
       async (newAllergens) => {
-        if (newAllergens && String(newAllergens).trim() !== allergensQuery.value) {
-          allergensQuery.value = String(newAllergens).trim();
-          fetchRecipes();
+        const newAllergensTrimmed = String(newAllergens || "").trim(); // Ensure it's treated as a trimmed string
+        if (newAllergensTrimmed !== allergensQuery.value) {
+          allergensQuery.value = newAllergensTrimmed; // Update the allergensQuery
+          fetchRecipes(); // Fetch new recipes with updated allergensQuery
         }
       },
       { immediate: true } // Runs on initial mount
