@@ -19,7 +19,6 @@ export default defineComponent({
     const playSound = ref<boolean>(true); // Only play the sound for the homepage logo
 
     // Fetch bookmarked recommendations from the backend
-    // Fetch bookmarked recommendations from the backend
     const fetchRecommendations = async () => {
       loading.value = true;
       error.value = null;

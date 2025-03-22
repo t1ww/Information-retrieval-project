@@ -1,14 +1,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive } from "vue";
 import RecipeCard from "@/components/RecipeCard.vue";
-
-interface Recipe {
-    recipe_id: string;
-    name: string;
-    snippet: string;
-    image_urls: string[];
-    rating?: number;
-}
+import type { Recipe } from "@/type";
 
 export default defineComponent({
     name: "BookmarkPage",
@@ -35,25 +28,7 @@ export default defineComponent({
                 });
                 if (!response.ok) throw new Error("Failed to fetch bookmarks");
                 const data = await response.json();
-                const recipeDetails = await Promise.all(
-                    data.bookmarks.map(async (bookmark: any) => {
-                        const recipeResponse = await fetch(`http://localhost:5000/recipe/${bookmark.recipe_id}`, {
-                            headers: { Authorization: token },
-                            credentials: "include",
-                        });
-                        if (!recipeResponse.ok) return null;
-                        const recipeData = await recipeResponse.json();
-                        // Initialize folder assignment for this bookmark (if not already set)
-                        if (!folderAssignment[recipeData.recipe_id]) {
-                            folderAssignment[recipeData.recipe_id] = "";
-                        }
-                        return {
-                            ...recipeData,
-                            rating: bookmark.rating,
-                        };
-                    })
-                );
-                bookmarks.value = recipeDetails.filter(Boolean);
+                bookmarks.value = data.bookmarks;
             } catch (error) {
                 errorMessage.value = (error as Error).message;
             } finally {
