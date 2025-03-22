@@ -64,9 +64,15 @@ export default defineComponent({
     const applySuggestedQuery = () => {
       if (suggestedQuery.value) {
         searchQuery.value = suggestedQuery.value;
-        router.push({ query: { query: suggestedQuery.value } }); // Update URL
+        suggestedQuery.value = null; // Stop showing suggestions after applying
+
+        setTimeout(() => {
+          router.replace({ query: { query: searchQuery.value } });
+          fetchRecipes();
+        }, 100);
       }
     };
+
 
     // Watch for query changes in the URL and fetch data
     watch(
@@ -79,7 +85,6 @@ export default defineComponent({
       },
       { immediate: true } // Runs on initial mount
     );
-
     onMounted(fetchRecipes);
 
     return {
@@ -104,7 +109,7 @@ export default defineComponent({
 
     <!-- Suggested Query Display -->
     <div v-if="suggestedQuery && suggestedQuery !== searchQuery" class="suggestion">
-      Did you mean: 
+      Did you mean:
       <button @click="applySuggestedQuery" class="suggested-btn">{{ suggestedQuery }}</button>?
     </div>
 
@@ -137,6 +142,7 @@ div {
   cursor: pointer;
   font-size: 1.1em;
 }
+
 .suggested-btn:hover {
   color: darkblue;
 }
