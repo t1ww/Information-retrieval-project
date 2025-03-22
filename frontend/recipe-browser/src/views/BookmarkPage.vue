@@ -41,39 +41,45 @@ export default defineComponent({
             try {
                 const token = localStorage.getItem("authToken");
                 if (!token) return;
+
                 const response = await fetch("http://localhost:5000/folders", {
                     method: "GET",
                     headers: { Authorization: token },
                     credentials: "include",
                 });
+
                 if (!response.ok) throw new Error("Failed to fetch folders");
+
                 const data = await response.json();
                 const folderData: { [key: string]: Recipe[] } = {};
+
+                // Iterate over each folder and process the recipe details
                 for (const folderName in data) {
+                    // Check if the data for a folder is an array
                     if (!Array.isArray(data[folderName])) {
                         console.error(`Expected an array for folder ${folderName}, got:`, data[folderName]);
                         continue;
                     }
-                    const recipeDetails = await Promise.all(
-                        data[folderName].map(async (recipeId: number) => {
-                            const recipeResponse = await fetch(`http://localhost:5000/recipe/${recipeId}`, {
-                                headers: { Authorization: token },
-                                credentials: "include",
-                            });
-                            if (!recipeResponse.ok) return null;
-                            const recipeData = await recipeResponse.json();
-                            return {
-                                ...recipeData,
-                            };
-                        })
-                    );
-                    folderData[folderName] = recipeDetails.filter(Boolean);
+
+                    // Directly use the recipes from the folder data
+                    const recipeDetails = data[folderName].map((recipe) => ({
+                        recipe_id: recipe.recipe_id,
+                        name: recipe.name,
+                        snippet: recipe.snippet,
+                        image_urls: recipe.image_urls || [], // Use empty array if no image_urls
+                    }));
+
+                    folderData[folderName] = recipeDetails;
                 }
+
+                // Update the folders state
                 folders.value = folderData;
             } catch (error) {
                 console.error("Error fetching folders:", error);
             }
         };
+
+
 
         // Remove a bookmark using /bookmark DELETE
         const removeBookmark = async (recipeId: string) => {
@@ -201,7 +207,8 @@ export default defineComponent({
                                 {{ folder }}
                             </option>
                         </select>
-                        <button @click="assignBookmarkToFolder(bookmark.recipe_id, folderAssignment[bookmark.recipe_id])"
+                        <button
+                            @click="assignBookmarkToFolder(bookmark.recipe_id, folderAssignment[bookmark.recipe_id])"
                             class="assign-btn">
                             ➕ Set Folder
                         </button>
@@ -244,14 +251,18 @@ export default defineComponent({
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
-    background: #121212; /* Dark background */
-    color: #ffffff; /* White text */
+    background: #121212;
+    /* Dark background */
+    color: #ffffff;
+    /* White text */
 }
 
-h1, h3 {
+h1,
+h3 {
     text-align: center;
     margin-bottom: 10px;
-    color: #ffffff; /* Ensures headings are readable */
+    color: #ffffff;
+    /* Ensures headings are readable */
 }
 
 /* Loading & Error Messages */
@@ -275,11 +286,13 @@ h1, h3 {
 }
 
 .bookmark-item {
-    background: #1e1e1e; /* Darker card background */
+    background: #1e1e1e;
+    /* Darker card background */
     color: #ffffff;
     padding: 15px;
     border-radius: 10px;
-    box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1); /* Softer shadow */
+    box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1);
+    /* Softer shadow */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -323,7 +336,8 @@ h1, h3 {
     flex: 1;
     padding: 6px;
     border-radius: 6px;
-    border: 1px solid #555; /* Darker border */
+    border: 1px solid #555;
+    /* Darker border */
     background: #1e1e1e;
     color: white;
 }
@@ -355,7 +369,8 @@ h1, h3 {
 
 /* Folder Cards */
 .folder-card {
-    background: #1e1e1e; /* Darker background */
+    background: #1e1e1e;
+    /* Darker background */
     color: #ffffff;
     padding: 15px;
     border-radius: 10px;
@@ -382,7 +397,8 @@ h1, h3 {
     box-shadow: 0px 2px 4px rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    flex-direction: column; /* Stack items vertically */
+    flex-direction: column;
+    /* Stack items vertically */
     justify-content: space-between;
 }
 
