@@ -89,7 +89,6 @@ export default defineComponent({
 });
 </script>
 
-
 <template>
   <div class="recipe-card">
     <div class="recipe-image">
@@ -109,8 +108,15 @@ export default defineComponent({
       </template>
     </div>
     <div class="recipe-info">
-      <h3>{{ recipe.name }} <span v-if="recipe.rating">⭐ {{ recipe.rating }}</span></h3>
+      <h3>
+        {{ recipe.name }}
+        <span v-if="recipe.rating">⭐ {{ recipe.rating }}</span>
+      </h3>
       <p>{{ recipe.snippet }}</p>
+      <!-- Allergens Warning -->
+      <div v-if="recipe.allergens && recipe.allergens.length" class="allergens-warning">
+        <strong>Contains :</strong> {{ recipe.allergens.join(', ') }}
+      </div>
     </div>
     <div class="recipe-actions">
       <router-link :to="`/recipe/${recipe.recipe_id}`">View Recipe</router-link>
@@ -120,10 +126,17 @@ export default defineComponent({
 
 <style scoped>
 .recipe-card {
+  display: flex;
+  flex-direction: column;
   border: 1px solid #ccc;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #292823;
+}
+
+p, h1, h2, h3 {
+  color: wheat;
 }
 
 .recipe-image {
@@ -173,6 +186,22 @@ export default defineComponent({
 .recipe-info p {
   font-size: 14px;
   color: #555;
+}
+
+/* Allergens Warning Styling */
+.allergens-warning {
+  background-color: #e679265f; /* light yellow background */
+  color: #ffe38e; /* dark yellow text */
+  padding: 4px 8px;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  margin-top: auto;
+  font-size: 16px;
+}
+
+/* Open recipe */
+.recipe-actions {
+  margin-top: auto;
 }
 
 .recipe-actions a {

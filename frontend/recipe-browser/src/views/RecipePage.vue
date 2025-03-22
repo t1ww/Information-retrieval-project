@@ -1,14 +1,14 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import type { RecipeDetailed as Recipe } from "@/type";
+import type { Recipe, RecipeDetailed } from "@/type";
 import RecipeList from "@/components/RecipeList.vue";
 
 export default defineComponent({
   name: "RecipePage",
   setup() {
     const route = useRoute();
-    const recipe = ref<Recipe | null>(null);
+    const recipe = ref<RecipeDetailed | null>(null);
     const isLoading = ref<boolean>(true);
     const errorMessage = ref<string | null>(null);
     const bookmarkErrorMessage = ref<string | null>(null);
@@ -229,6 +229,14 @@ export default defineComponent({
           <button @click="bookmarkRecipe">Bookmark</button>
         </div>
       </div>
+      
+      <!-- Allergens Warning -->
+      <div
+        v-if="recipe.allergens && recipe.allergens.length"
+        class="allergens-warning"
+      >
+        <strong>Contains :</strong> {{ recipe.allergens.join(', ') }}
+      </div>
 
       <!-- Recipe Information -->
       <div class="recipe-info">
@@ -297,26 +305,28 @@ export default defineComponent({
   max-width: 800px;
   margin: auto;
   padding: 20px;
-  background: white;
-  color: #242424;
+  background: #1e1e1e; /* Dark background */
+  color: #e0e0e0;      /* Light text */
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .recipe-title {
   text-align: center;
   font-size: 2.5em;
   margin-bottom: 20px;
+  color: #ffffff;
 }
 
 .loading {
   text-align: center;
   font-size: 18px;
   margin: 20px 0;
+  color: #e0e0e0;
 }
 
 .error {
-  color: red;
+  color: #ff6b6b;  /* Light red for errors */
   text-align: center;
   margin-bottom: 20px;
 }
@@ -328,19 +338,20 @@ export default defineComponent({
 .nutrition {
   margin-top: 20px;
   padding: 15px;
-  background: #f9f9f9;
+  background: #2a2a2a; /* Slightly lighter dark background */
   border-radius: 8px;
-  text-align: start;
+  text-align: left;
 }
 
 h3 {
-  color: #333;
+  color: #ffffff;
   font-size: 1.5em;
 }
 
 ul,
 ol {
   padding-left: 20px;
+  color: #e0e0e0;
 }
 
 .bookmark-section {
@@ -349,7 +360,7 @@ ol {
 }
 
 .bookmarked-btn {
-  background-color: green;
+  background-color: #4caf50;
   color: white;
   border: none;
   padding: 10px;
@@ -360,6 +371,9 @@ select {
   margin-right: 10px;
   padding: 5px;
   height: 2.5em;
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
 }
 
 .description {
@@ -372,7 +386,7 @@ select {
 }
 
 .error-message {
-  color: red;
+  color: #ff6b6b;
   margin-bottom: 10px;
 }
 
@@ -385,6 +399,7 @@ select {
   width: 100%;
   height: auto;
   display: block;
+  border-radius: 8px;
 }
 
 .overlay {
@@ -393,26 +408,50 @@ select {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  /* Darkens the image */
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1;
-  /* Ensure the overlay is above the image */
 }
 
 .overlay span {
   position: absolute;
   bottom: 10px;
   left: 50%;
-  padding: .2em;
+  padding: 0.2em;
   transform: translateX(-50%);
-  color: rgb(255, 213, 154);
+  color: #ffd59a;
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  background: rgba(50, 32, 22, 0.5);
-  /* Darkens the image */
-  border-radius: .5em;
+  background: rgba(50, 32, 22, 0.7);
+  border-radius: 0.5em;
   z-index: 2;
-  /* Ensure text is above the overlay */
+}
+
+/* Move actions to bottom */
+.recipe-actions {
+  margin-top: auto;
+  text-align: center;
+}
+
+.recipe-actions a {
+  margin-top: 10px;
+  text-decoration: none;
+  color: #90caf9;
+  font-weight: bold;
+}
+
+.recipe-actions a:hover {
+  text-decoration: underline;
+}
+
+/* Allergens warning style */
+.allergens-warning {
+  background-color: #ffe9a0; /* light yellow background */
+  color: #856404; /* dark yellow text */
+  padding: 4px 8px;
+  border: 2px solid #ffd454;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 16px;
 }
 </style>

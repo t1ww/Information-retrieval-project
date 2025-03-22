@@ -20,6 +20,7 @@ export interface RecipeDetailed {
     prep_time: string;
     total_time: string;
     keywords: string[];
+    allergens: string[];
 }
 
 export interface Recipe {
@@ -27,5 +28,7 @@ export interface Recipe {
     name: string;
     snippet: string;
     image_urls: string[];
+    allergens: string[];
+    ingredients: string[];
     rating?: number;
 }
