@@ -18,6 +18,7 @@ export default defineComponent({
     const isBookmarked = ref<boolean>(false);
     const recommendedRecipes = ref<Recipe[]>([]);
     const fallbackImageCache = new Map<string, string>(); // Cache fallback images by query
+    const hasAuthToken = ref<boolean>(!!localStorage.getItem("authToken")); // Shows that logged in or not
 
     // Fetch fallback image for recipes without images
     const fetchFallbackImage = async (query: string): Promise<string> => {
@@ -132,39 +133,45 @@ export default defineComponent({
     const fetchRecommendations = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        if (!token) {
-          console.error("No auth token found in localStorage");
-          return;
-        }
 
-        // Pass the current recipe ID to the backend for personalized recommendations
+        // Get the current recipe ID from route params
         const currentRecipeId = route.params.id; // Assuming the recipe ID is in the route params
         if (!currentRecipeId) {
           console.error("Current recipe ID is missing");
           return;
         }
 
+        // Define the request options with optional headers
+        const requestOptions: RequestInit = {
+          method: "GET",
+          credentials: "include",  // Include cookies for the request
+        };
+
+        if (token) {
+          // If token exists, add Authorization header
+          requestOptions.headers = {
+            Authorization: token,
+          };
+        }
+
+        // Fetch recommendations with the current recipe ID
         const response = await fetch(
           `http://localhost:5000/recommendations/current?current_recipe_id=${currentRecipeId}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: token,
-            },
-            credentials: "include",
-          }
+          requestOptions
         );
 
+        // If the response is not ok, throw an error
         if (!response.ok) throw new Error("Failed to fetch recommendations");
 
+        // Parse the response JSON and store the recommended recipes
         const data = await response.json();
         recommendedRecipes.value = data.recommended_recipes;
+
       } catch (error) {
+        // Catch and log any errors
         console.error("Error fetching recommendations:", error);
       }
     };
-
-
 
     onMounted(() => {
       fetchRecipe();
@@ -181,7 +188,8 @@ export default defineComponent({
       isBookmarked,
       bookmarkRecipe,
       recommendedRecipes,
-      bookmarkErrorMessage
+      bookmarkErrorMessage,
+      hasAuthToken
     };
   },
   components: {
@@ -213,28 +221,30 @@ export default defineComponent({
       </div>
 
       <!-- Bookmark Section -->
-      <div class="bookmark-section">
-        <div v-if="bookmarkErrorMessage" class="error-message">
-          {{ bookmarkErrorMessage }}
-        </div>
-        <button v-if="isBookmarked" disabled class="bookmarked-btn">
-          ✅ Bookmarked : {{ userRating }} ⭐
-        </button>
-        <div v-else>
-          <label>Rate this Recipe: </label>
-          <select v-model="userRating">
-            <option :value="null" disabled>Select a rating</option>
-            <option v-for="n in 5" :key="n" :value="n">{{ n }} ⭐</option>
-          </select>
-          <button @click="bookmarkRecipe">Bookmark</button>
+      <div v-if="hasAuthToken">
+        <div class="bookmark-section">
+          <div v-if="bookmarkErrorMessage" class="error-message">
+            {{ bookmarkErrorMessage }}
+          </div>
+          <button v-if="isBookmarked" disabled class="bookmarked-btn">
+            ✅ Bookmarked : {{ userRating }} ⭐
+          </button>
+          <div v-else>
+            <label>Rate this Recipe: </label>
+            <select v-model="userRating">
+              <option :value="null" disabled>Select a rating</option>
+              <option v-for="n in 5" :key="n" :value="n">{{ n }} ⭐</option>
+            </select>
+            <button @click="bookmarkRecipe">Bookmark</button>
+          </div>
         </div>
       </div>
-      
+      <div v-else>
+        <p>Please login to bookmark a recipe.</p>
+      </div>
+
       <!-- Allergens Warning -->
-      <div
-        v-if="recipe.allergens && recipe.allergens.length"
-        class="allergens-warning"
-      >
+      <div v-if="recipe.allergens && recipe.allergens.length" class="allergens-warning">
         <strong>Contains :</strong> {{ recipe.allergens.join(', ') }}
       </div>
 
@@ -305,8 +315,10 @@ export default defineComponent({
   max-width: 800px;
   margin: auto;
   padding: 20px;
-  background: #1e1e1e; /* Dark background */
-  color: #e0e0e0;      /* Light text */
+  background: #1e1e1e;
+  /* Dark background */
+  color: #e0e0e0;
+  /* Light text */
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
@@ -326,7 +338,8 @@ export default defineComponent({
 }
 
 .error {
-  color: #ff6b6b;  /* Light red for errors */
+  color: #ff6b6b;
+  /* Light red for errors */
   text-align: center;
   margin-bottom: 20px;
 }
@@ -338,7 +351,8 @@ export default defineComponent({
 .nutrition {
   margin-top: 20px;
   padding: 15px;
-  background: #2a2a2a; /* Slightly lighter dark background */
+  background: #2a2a2a;
+  /* Slightly lighter dark background */
   border-radius: 8px;
   text-align: left;
 }
@@ -446,8 +460,10 @@ select {
 
 /* Allergens warning style */
 .allergens-warning {
-  background-color: #ffe9a0; /* light yellow background */
-  color: #856404; /* dark yellow text */
+  background-color: #ffe9a0;
+  /* light yellow background */
+  color: #856404;
+  /* dark yellow text */
   padding: 4px 8px;
   border: 2px solid #ffd454;
   border-radius: 4px;
