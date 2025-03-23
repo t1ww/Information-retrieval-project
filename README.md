@@ -56,7 +56,7 @@ Simplified tasks : https://trello.com/b/MsXhz6sK/ir-food-browser
 
 | Item                           | To earn 1 point                                                                 | To earn 2 points                                                                                           |
 |--------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| **It is a web application**    | The landing page displays three lists of dishes as specified in the use case description. | (1) plus, authentication functionality.                                                                   |
+| **It is a web application**    | `The landing page displays three lists of dishes as specified in the use case description.` | `(1) plus, authentication functionality.`                                                                   |
 | **Images**                     | Images are fully cached and optimized for instant loading on all pages.       | -                                                                                                          |
 | **Search**                     | -                                                                              | The user can search by any combination of dish name, ingredient, and cooking process simultaneously.       |
 | **Spell collection**           | Spell collection is automatically launched once a typo is identified.         | (1) plus, a well-designed UX that prompts the user to confirm if the suggested corrections for typos should be used. |
