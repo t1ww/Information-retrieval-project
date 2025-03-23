@@ -11,22 +11,20 @@ export default defineComponent({
         const folders = ref<{ [key: string]: Recipe[] }>({});
         const isLoading = ref<boolean>(true);
         const errorMessage = ref<string | null>(null);
-        const newFolderName = ref<string>("");
+        const newFolderName = ref<string>(""); // For creating new folders
+        const renamedFolderName = ref<string>(""); // For renaming existing folders
+        const editingFolder = ref<string | null>(null);
 
-        // This will store the selected folder for each bookmark by recipe_id
         const folderAssignment = reactive<{ [recipeId: string]: string }>({});
 
-        // Sort by rating (if available)
         const sortByRating = (recipes: Recipe[]): Recipe[] => {
             return recipes.sort((a, b) => {
-                // If no rating is available, consider it as 0 for sorting purposes
                 const ratingA = a.rating ?? 0;
                 const ratingB = b.rating ?? 0;
-                return ratingB - ratingA; // Sort in descending order
+                return ratingB - ratingA;
             });
         };
 
-        // Fetch bookmarks from /user_bookmarks endpoint
         const fetchBookmarks = async () => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -46,7 +44,6 @@ export default defineComponent({
             }
         };
 
-        // Fetch folders from /folders endpoint
         const fetchFolders = async () => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -61,44 +58,24 @@ export default defineComponent({
                 if (!response.ok) throw new Error("Failed to fetch folders");
 
                 const data = await response.json();
-
-                // Extract response_time if present, and log or handle it as needed
-                const responseTime = data.response_time;
-                if (responseTime) {
-                    console.log("Response time:", responseTime);
-                    // Optionally, you can store it in the state if necessary
-                }
-
-                // Now process the folder data, ignoring the response_time
                 const folderData: { [key: string]: Recipe[] } = {};
 
-                // Iterate over each folder and process the recipe details
                 for (const folderName in data) {
-                    // Skip the response_time key
                     if (folderName === "response_time") continue;
-
                     const folderContent = data[folderName];
-
-                    // Check if the folder content is an array
                     if (!Array.isArray(folderContent)) {
                         console.warn(`Unexpected data for folder "${folderName}", got:`, folderContent);
                         continue;
                     }
-
-                    // Directly use the recipes from the folder data
-                    const recipeDetails = folderContent as Recipe[];
-                    folderData[folderName] = sortByRating(recipeDetails);
+                    folderData[folderName] = sortByRating(folderContent as Recipe[]);
                 }
 
-                // Update the folders state
                 folders.value = folderData;
             } catch (error) {
                 console.error("Error fetching folders:", error);
             }
         };
 
-
-        // Remove a bookmark using /bookmark DELETE
         const removeBookmark = async (recipeId: string) => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -114,19 +91,13 @@ export default defineComponent({
                 });
                 if (!response.ok) throw new Error("Failed to remove bookmark");
 
-                // Remove the bookmark from the bookmarks array
                 bookmarks.value = bookmarks.value.filter(b => b.recipe_id !== recipeId);
-
-                // Optionally, remove the recipe from the folders (if needed) and refresh the folders
-                await fetchFolders(); // This will reload the folders after removal
-
+                await fetchFolders();
             } catch (error) {
                 console.error("Error removing bookmark:", error);
             }
         };
 
-
-        // Create a new folder using /folders POST
         const createFolder = async () => {
             if (!newFolderName.value.trim()) return;
             const token = localStorage.getItem("authToken");
@@ -145,12 +116,8 @@ export default defineComponent({
             fetchFolders();
         };
 
-        // Assign a bookmark to a folder using /folder_recipes POST endpoint
         const assignBookmarkToFolder = async (recipeId: string, folderName: string | number) => {
-            if (!folderName) {
-                console.error("No folder selected for recipe", recipeId);
-                return;
-            }
+            if (!folderName) return;
             try {
                 const token = localStorage.getItem("authToken");
                 if (!token) return;
@@ -161,14 +128,12 @@ export default defineComponent({
                     body: JSON.stringify({ folder_name: folderName, recipe_id: recipeId }),
                 });
                 if (!response.ok) throw new Error("Failed to assign bookmark to folder");
-                // Optionally, refresh folders
                 await fetchFolders();
             } catch (error) {
                 console.error("Error assigning bookmark to folder:", error);
             }
         };
 
-        // Remove a recipe from a folder using /folder_recipes DELETE
         const removeRecipeFromFolder = async (recipeId: string, folderName: string | number) => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -183,15 +148,12 @@ export default defineComponent({
                     body: JSON.stringify({ folder_name: folderName, recipe_id: recipeId }),
                 });
                 if (!response.ok) throw new Error("Failed to remove recipe from folder");
-
-                // Optionally, refresh folders
-                await fetchFolders(); // This will refresh the folders data
+                await fetchFolders();
             } catch (error) {
                 console.error("Error removing recipe from folder:", error);
             }
         };
 
-        // Delete a folder using the /folders DELETE endpoint
         const deleteFolder = async (folderName: string | number) => {
             try {
                 const token = localStorage.getItem("authToken");
@@ -206,11 +168,44 @@ export default defineComponent({
                     body: JSON.stringify({ folder_name: folderName }),
                 });
                 if (!response.ok) throw new Error("Failed to delete folder");
-
-                // After deleting, remove the folder from the local state
                 delete folders.value[folderName];
             } catch (error) {
                 console.error("Error deleting folder:", error);
+            }
+        };
+
+        const startEditingFolder = (folderName: string) => {
+            editingFolder.value = folderName;
+            renamedFolderName.value = folderName;
+        };
+
+        const renameFolder = async (oldFolderName: string) => {
+            if (!renamedFolderName.value.trim()) return;
+            try {
+                const token = localStorage.getItem("authToken");
+                if (!token) return;
+                const response = await fetch("http://localhost:5000/folders", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", Authorization: token },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        old_folder_name: oldFolderName,
+                        new_folder_name: renamedFolderName.value,
+                    }),
+                });
+
+                if (!response.ok) throw new Error("Failed to rename folder");
+
+                // Update folders reactively
+                const updatedFolders = { ...folders.value };
+                updatedFolders[renamedFolderName.value] = updatedFolders[oldFolderName];
+                delete updatedFolders[oldFolderName];
+                folders.value = updatedFolders;
+
+                renamedFolderName.value = "";
+                editingFolder.value = null;
+            } catch (error) {
+                errorMessage.value = (error as Error).message;
             }
         };
 
@@ -226,11 +221,15 @@ export default defineComponent({
             errorMessage,
             removeBookmark,
             newFolderName,
+            renamedFolderName,
             createFolder,
             assignBookmarkToFolder,
             folderAssignment,
             removeRecipeFromFolder,
-            deleteFolder
+            deleteFolder,
+            renameFolder,
+            editingFolder,
+            startEditingFolder
         };
     },
 });
@@ -271,15 +270,24 @@ export default defineComponent({
             <h3>Your Folders</h3>
             <div v-if="Object.keys(folders).length" class="folder-list">
                 <div v-for="(recipes, folder) in folders" :key="folder" class="folder-card">
-                    <!-- Delete folder button -->
-                    <h2>{{ folder }}</h2>
-                    <button @click="deleteFolder(folder)" class="delete-folder-btn">
-                        🗑️ Delete Folder
-                    </button>
+                    <h2 v-if="editingFolder !== folder">{{ folder }}</h2>
+                    <input v-else v-model="renamedFolderName" :placeholder="`Rename ${folder}`"
+                        @keyup.enter="renameFolder(folder)" />
+                    <div class="folder-controls">
+                        <button v-if="editingFolder === folder" @click="renameFolder(folder)" class="save-btn">
+                            Save
+                        </button>
+                        <button v-else @click="startEditingFolder(folder)" class="rename-btn">
+                            Rename
+                        </button>
+                        <button @click="deleteFolder(folder)" class="delete-folder-btn">
+                            🗑️ Delete
+                        </button>
+                    </div>
                     <div class="folder-recipes">
                         <div v-for="recipe in recipes" :key="recipe.recipe_id" class="folder-recipe-item">
                             <RecipeCard :recipe="recipe" />
-                            <button @click="removeRecipeFromFolder(recipe.recipe_id, folder)" class="remove-folder-btn">
+                            <button @click="removeRecipeFromFolder(recipe.recipe_id, folder)" class="remove-btn">
                                 ❌ Remove
                             </button>
                         </div>
@@ -290,7 +298,8 @@ export default defineComponent({
 
             <h3>Create a New Folder</h3>
             <div class="folder-creation">
-                <input v-model="newFolderName" placeholder="Folder name" class="folder-input" />
+                <input v-model="newFolderName" placeholder="Folder name" class="folder-input"
+                    @keyup.enter="createFolder" />
                 <button @click="createFolder" class="create-folder-btn">➕ Create</button>
             </div>
         </section>
