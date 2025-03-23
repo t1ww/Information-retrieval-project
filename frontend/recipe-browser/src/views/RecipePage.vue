@@ -173,6 +173,26 @@ export default defineComponent({
       }
     };
 
+    // Image carousel 
+    const prevImage = () => {
+      if (recipe.value?.image_urls?.length) {
+        if (currentImageIndex.value > 0) {
+          currentImageIndex.value--;
+        } else {
+          currentImageIndex.value = recipe.value.image_urls.length - 1; // Loop to the last image
+        }
+      }
+    };
+
+    const nextImage = () => {
+      if (currentImageIndex.value < (recipe.value?.image_urls.length ?? 0) - 1) {
+        currentImageIndex.value++;
+      } else {
+        currentImageIndex.value = 0; // Loop back to the first image
+      }
+    };
+
+
     // Watch for changes to the route ID and trigger fetchRecipe
     watch(
       () => route.params.id, // Watch for changes in the route's id parameter
@@ -202,7 +222,9 @@ export default defineComponent({
       bookmarkRecipe,
       recommendedRecipes,
       bookmarkErrorMessage,
-      hasAuthToken
+      hasAuthToken,
+      prevImage,
+      nextImage
     };
   },
   components: {
@@ -223,15 +245,31 @@ export default defineComponent({
 
       <!-- Image Section -->
       <div class="carousel">
-        <img v-if="recipe.image_urls.length > 0" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
-          class="carousel-image" />
-        <div v-else class="fallback-container">
-          <img :src="fallbackImage" alt="Fallback Recipe Image" />
-          <div class="overlay">
-            <span>*Taken from nearest image</span>
+        <div class="carousel-images">
+          <img v-if="recipe.image_urls.length > 0" :src="recipe.image_urls[currentImageIndex]" :alt="recipe.name"
+            class="carousel-image" />
+          <div v-else class="fallback-container">
+            <img :src="fallbackImage" alt="Fallback Recipe Image" />
+            <div class="overlay">
+              <span>*Taken from nearest image</span>
+            </div>
           </div>
         </div>
+
+        <!-- Dots Navigation -->
+        <div class="carousel-dots">
+          <span v-for="(image, index) in recipe.image_urls" :key="index"
+            :class="['carousel-dot', { active: currentImageIndex === index }]"
+            @click="currentImageIndex = index"></span>
+        </div>
+
+        <!-- Navigation Buttons (optional) -->
+        <div class="carousel-nav">
+          <button @click="prevImage" class="carousel-nav-btn">Prev</button>
+          <button @click="nextImage" class="carousel-nav-btn">Next</button>
+        </div>
       </div>
+
 
       <!-- Bookmark Section -->
       <div v-if="hasAuthToken">
@@ -482,5 +520,87 @@ select {
   border-radius: 4px;
   margin-top: 8px;
   font-size: 16px;
+}
+
+/* Carousel */
+.carousel {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  /* Adjust as needed */
+  margin: auto;
+}
+
+.carousel-images {
+  position: relative;
+  width: 100%;
+}
+
+.carousel-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  /* Adjust as needed */
+}
+
+.fallback-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f0f0f0;
+}
+
+.overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px 10px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.carousel-dot {
+  height: 10px;
+  width: 10px;
+  margin: 0 5px;
+  background-color: #bbb;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.carousel-dot.active {
+  background-color: #717171;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+}
+
+.carousel-nav-btn {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.carousel-nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
 }
 </style>
