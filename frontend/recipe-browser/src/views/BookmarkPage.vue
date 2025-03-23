@@ -277,7 +277,7 @@ export default defineComponent({
                         <button v-if="editingFolder === folder" @click="renameFolder(folder)" class="save-btn">
                             Save
                         </button>
-                        <button v-else @click="startEditingFolder(folder)" class="rename-btn">
+                        <button v-else @click="startEditingFolder(folder as string)" class="rename-btn">
                             Rename
                         </button>
                         <button @click="deleteFolder(folder)" class="delete-folder-btn">
