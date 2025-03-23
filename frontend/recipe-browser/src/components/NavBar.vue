@@ -1,18 +1,17 @@
+<!-- NavBar.vue -->
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
 import axios, { AxiosError } from 'axios'
 import { useRouter } from 'vue-router'
+import LoginPopup from './LoginPopup.vue' // adjust path if needed
 
 export default defineComponent({
   name: 'NavBar',
+  components: { LoginPopup },
   setup() {
     const isLoginPopupVisible = ref(false)
-    const username = ref('')
-    const password = ref('')
-    const errorMessage = ref('')
-    const successMessage = ref('') // Message for login/logout success
-    const showSuccessPopup = ref(false) // Controls visibility of success messages
-
+    const successMessage = ref('')
+    const showSuccessPopup = ref(false)
     const router = useRouter()
 
     const isLoggedIn = computed(() => {
@@ -28,35 +27,31 @@ export default defineComponent({
       showSuccessPopup.value = true
       setTimeout(() => {
         showSuccessPopup.value = false
-      }, 2000) // Hide after 2 seconds
+      }, 2000)
     }
 
-    const handleLogin = async () => {
+    const handleLogin = async (credentials: { username: string; password: string; setError: (msg: string) => void; reset: () => void }) => {
       try {
         const response = await axios.post('http://localhost:5000/login', {
-          username: username.value,
-          password: password.value
+          username: credentials.username,
+          password: credentials.password
         })
 
         if (response.data.token) {
           localStorage.setItem('authUsername', response.data.username)
           localStorage.setItem('authToken', response.data.token)
-          username.value = response.data.username
-
           showMessage('Login successful!')
+          credentials.reset()
           toggleLoginPopup()
-
-          setTimeout(() => {
-          router.go(0)
-          }, 1500) // Redirect after 1.5s
+          setTimeout(() => router.go(0), 1500)
         } else {
-          errorMessage.value = 'Login failed. Please try again.'
+          credentials.setError('Login failed. Please try again.')
         }
       } catch (error: unknown) {
         if (error instanceof AxiosError && error.response?.data?.message) {
-          errorMessage.value = error.response.data.message
+          credentials.setError(error.response.data.message)
         } else {
-          errorMessage.value = 'An error occurred. Please try again later.'
+          credentials.setError('An error occurred. Please try again later.')
         }
       }
     }
@@ -64,31 +59,25 @@ export default defineComponent({
     const handleLogout = () => {
       if (confirm('Are you sure you want to log out?')) {
         showMessage('Logging out...')
-
         setTimeout(() => {
           localStorage.removeItem('authUsername')
           localStorage.removeItem('authToken')
           router.go(0)
-        }, 1500) // Delay logout  
+        }, 1500)
       }
     }
 
-    const userDisplayName = computed(() => {
-      return localStorage.getItem('authUsername') || ''
-    })
+    const userDisplayName = computed(() => localStorage.getItem('authUsername') || '')
 
     return {
       isLoginPopupVisible,
-      username,
-      password,
-      errorMessage,
-      successMessage,
-      showSuccessPopup,
       toggleLoginPopup,
       handleLogin,
       handleLogout,
       isLoggedIn,
-      userDisplayName
+      userDisplayName,
+      successMessage,
+      showSuccessPopup
     }
   }
 })
@@ -104,7 +93,7 @@ export default defineComponent({
         <a href="javascript:void(0);" class="nav-link" @click="toggleLoginPopup">Login</a>
       </li>
       <li v-if="isLoggedIn">
-        <span class="nav-link">Welcome, {{ userDisplayName }} </span>
+        <span class="nav-link">Welcome, {{ userDisplayName }}</span>
       </li>
       <li v-if="isLoggedIn">
         <a href="javascript:void(0);" class="nav-link" @click="handleLogout">Logout</a>
@@ -114,26 +103,8 @@ export default defineComponent({
       </li>
     </ul>
 
-    <!-- Login Popup -->
-    <div v-if="isLoginPopupVisible" class="login-popup">
-      <div class="popup-content">
-        <h3>Login</h3>
-        <form @submit.prevent="handleLogin">
-          <label for="username">Username:</label>
-          <input type="text" id="username" v-model="username" required />
+    <LoginPopup :visible="isLoginPopupVisible" @login="handleLogin" @close="toggleLoginPopup" />
 
-          <label for="password">Password:</label>
-          <input type="password" id="password" v-model="password" required />
-
-          <button type="submit">Login</button>
-        </form>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        <p>Don't have an account? <router-link to="/register">Register here</router-link></p>
-        <button @click="toggleLoginPopup" class="close-btn">Close</button>
-      </div>
-    </div>
-
-    <!-- Success Popup -->
     <div v-if="showSuccessPopup" class="success-popup">
       <p>{{ successMessage }}</p>
     </div>
@@ -174,79 +145,6 @@ li {
   cursor: pointer;
 }
 
-/* Login Popup Styles */
-.login-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.popup-content {
-  background-color: rgb(43, 46, 47);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  width: 300px;
-}
-
-.popup-content h3 {
-  margin-bottom: 1rem;
-}
-
-.popup-content label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.popup-content input {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.popup-content button {
-  width: 100%;
-  padding: 0.7rem;
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.popup-content button:hover {
-  background-color: #555;
-}
-
-.close-btn {
-  margin-top: 1rem;
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-}
-
-.close-btn:hover {
-  background-color: #d32f2f;
-}
-
-.error-message {
-  color: red;
-  font-size: 14px;
-  margin-top: 10px;
-  text-align: center;
-}
-
-/* Success Popup */
 .success-popup {
   position: fixed;
   top: 10%;
