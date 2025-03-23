@@ -20,9 +20,11 @@ export default defineComponent({
     const recipes = ref<Recipe[]>([]);
     const isLoading = ref<boolean>(false);
     const errorMessage = ref<string | null>(null);
+    const currentPage = ref<number>(parseInt(String(route.query.page || 1))); // Track current page
+    const totalPages = ref<number>(0); // Total pages from API response
 
-    // Fetch recipes with query and allergensQuery
-    const fetchRecipes = async () => {
+    // Fetch recipes with suggested query
+    const fetchRecipes = async (page: number = currentPage.value) => {
       const query = searchQuery.value.trim();
       const excludedAllergens = allergensQuery.value.trim();
 
@@ -36,7 +38,7 @@ export default defineComponent({
       errorMessage.value = null;
 
       try {
-        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}&excluded_allergens=${encodeURIComponent(excludedAllergens)}`, {
+        const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(query)}&excluded_allergens=${encodeURIComponent(excludedAllergens)}&page=${page}`, {
           method: "GET",
           credentials: "include",
         });
@@ -52,8 +54,11 @@ export default defineComponent({
         // Directly assign recipes
         recipes.value = fetchedRecipes.map((recipe: Recipe) => ({
           ...recipe,
-          fallbackImage: false, // No fallback image handling anymore
         }));
+
+        // Set pagination data
+        totalPages.value = data.total_pages || 0;
+        currentPage.value = page; // Update current page
       } catch (error) {
         errorMessage.value = (error as Error).message;
         recipes.value = [];
@@ -87,7 +92,7 @@ export default defineComponent({
       { immediate: true } // Runs on initial mount
     );
 
-    // Watch for allergensQuery changes in the URL and fetch data
+    // Watch for allergensQuery and page changes in the URL and fetch data
     watch(
       () => route.query.excluded_allergens,
       async (newAllergens) => {
@@ -96,11 +101,29 @@ export default defineComponent({
           allergensQuery.value = newAllergensTrimmed; // Update the allergensQuery
           fetchRecipes(); // Fetch new recipes with updated allergensQuery
         }
+      }
+    );
+
+    watch(
+      () => route.query.page,
+      async (newPage) => {
+        const page = parseInt(String(newPage)) || 1; // Default to page 1 if not valid
+        if (page !== currentPage.value) {
+          currentPage.value = page;
+          fetchRecipes(page); // Fetch new recipes with the updated page
+        }
       },
       { immediate: true } // Runs on initial mount
     );
 
-    onMounted(fetchRecipes);
+
+    onMounted(() => fetchRecipes(currentPage.value));
+
+    // Pagination controls
+    const changePage = (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages.value) return;
+      router.push({ query: { query: searchQuery.value, page: newPage } }); // Update URL to reflect new page
+    };
 
     return {
       searchQuery,
@@ -110,6 +133,9 @@ export default defineComponent({
       isLoading,
       errorMessage,
       applySuggestedQuery,
+      currentPage,
+      totalPages,
+      changePage,
     };
   },
 });
@@ -133,6 +159,13 @@ export default defineComponent({
       <RecipeList :recipes="recipes" />
     </div>
     <div v-else-if="!isLoading && !errorMessage">No recipes found.</div>
+
+    <!-- Pagination Controls -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1">Previous</button>
+      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages">Next</button>
+    </div>
   </div>
 </template>
 
@@ -145,6 +178,7 @@ div {
   color: red;
 }
 
+/* Suggestion for spelling mistake */
 .suggestion {
   margin: 10px 0;
   font-size: 1.1em;
@@ -161,5 +195,31 @@ div {
 
 .suggested-btn:hover {
   color: darkblue;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pagination button {
+  padding: 5px 15px;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+}
+
+.pagination button:hover:disabled {
+  border-color: #3b0000;
+}
+
+.pagination span {
+  font-size: 1.2em;
 }
 </style>
