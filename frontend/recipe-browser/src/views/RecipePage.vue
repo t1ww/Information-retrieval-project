@@ -258,7 +258,7 @@ export default defineComponent({
 
         <!-- Dots Navigation -->
         <div class="carousel-dots">
-          <span v-for="(image, index) in recipe.image_urls" :key="index"
+          <span v-for="(_image, index) in recipe.image_urls" :key="index"
             :class="['carousel-dot', { active: currentImageIndex === index }]"
             @click="currentImageIndex = index"></span>
         </div>
