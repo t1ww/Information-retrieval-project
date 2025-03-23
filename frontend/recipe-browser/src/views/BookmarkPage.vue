@@ -86,14 +86,7 @@ export default defineComponent({
                     }
 
                     // Directly use the recipes from the folder data
-                    const recipeDetails = folderContent.map((recipe) => ({
-                        recipe_id: recipe.recipe_id,
-                        name: recipe.name,
-                        snippet: recipe.snippet,
-                        image_urls: recipe.image_urls || [], // Use empty array if no image_urls
-                        rating: recipe.rating || []
-                    }));
-
+                    const recipeDetails = folderContent as Recipe[];
                     folderData[folderName] = sortByRating(recipeDetails);
                 }
 
