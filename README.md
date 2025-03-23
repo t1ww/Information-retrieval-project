@@ -1,6 +1,9 @@
 # Information retrieval project
  Food reciepe browser project
 
+Unless more problem magically appear
+THIS PROJECT IS FINISH!!!
+
 By `652115013 Narongchai Rongthong`
 
 (for me)
