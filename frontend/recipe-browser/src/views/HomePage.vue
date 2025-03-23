@@ -17,6 +17,7 @@ export default defineComponent({
     const loading = ref<boolean>(false); // To handle loading state
     const error = ref<string | null>(null); // To handle errors
     const playSound = ref<boolean>(true); // Only play the sound for the homepage logo
+    const hasAuthToken = ref<boolean>(!!localStorage.getItem("authToken")); // Shows that logged in or not
 
     // Fetch bookmarked recommendations from the backend
     const fetchRecommendations = async () => {
@@ -77,6 +78,7 @@ export default defineComponent({
       recommendedRecipes,
       loading,
       error,
+      hasAuthToken
     };
   },
 });
@@ -97,7 +99,10 @@ export default defineComponent({
     <RecipeList :recipes="recommendedRecipes" />
   </section>
   <section v-else class="no-recommendations">
-    <p>No recommendations available at the moment.</p>
+    <p v-if="hasAuthToken">No recommendations available at the moment.</p>
+    <p v-else>
+      Please login and bookmark a recipe to get recommendations.
+    </p>
   </section>
 </template>
 
