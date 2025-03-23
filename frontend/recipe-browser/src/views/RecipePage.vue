@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import type { Recipe, RecipeDetailed } from "@/type";
 import RecipeList from "@/components/RecipeList.vue";
@@ -172,6 +172,19 @@ export default defineComponent({
         console.error("Error fetching recommendations:", error);
       }
     };
+
+    // Watch for changes to the route ID and trigger fetchRecipe
+    watch(
+      () => route.params.id, // Watch for changes in the route's id parameter
+      (newId, oldId) => {
+        if (newId !== oldId) {
+          fetchRecipe(); // Call fetchRecipe whenever the ID changes
+          fetchRecommendations();
+          window.scrollTo(0, 0);
+        }
+      },
+      { immediate: true } // Immediately trigger fetchRecipe when the component mounts
+    );
 
     onMounted(() => {
       fetchRecipe();
