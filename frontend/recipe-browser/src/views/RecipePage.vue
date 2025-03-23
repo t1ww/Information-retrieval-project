@@ -257,14 +257,14 @@ export default defineComponent({
         </div>
 
         <!-- Dots Navigation -->
-        <div class="carousel-dots">
+        <div class="carousel-dots" v-if="recipe.image_urls.length > 1">
           <span v-for="(_image, index) in recipe.image_urls" :key="index"
             :class="['carousel-dot', { active: currentImageIndex === index }]"
             @click="currentImageIndex = index"></span>
         </div>
 
         <!-- Navigation Buttons (optional) -->
-        <div class="carousel-nav">
+        <div class="carousel-nav" v-if="recipe.image_urls.length > 1">
           <button @click="prevImage" class="carousel-nav-btn">Prev</button>
           <button @click="nextImage" class="carousel-nav-btn">Next</button>
         </div>
