@@ -2,3 +2,5 @@
 /resource
 /app/__pycache__
 /indexer/__pycache__
+
+*.env
